@@ -49,11 +49,17 @@ void LegacySystem_AssignCurrentRegionOrigin(struct Pokemon *mon);
 bool8 LegacySystem_IsBoxMonEligible(const struct BoxPokemon *boxMon);
 bool8 LegacySystem_IsMonEligible(const struct Pokemon *mon);
 void LegacySystem_StoreLockedPartyMons(void);
+bool8 LegacySystem_CanVaultPartyForRegion(enum LegacyCampaignRegion targetRegion);
 
 // Script-facing helpers used only by the vertical-slice prototype.
 void ChooseLegacyStarter(void);
+u16 LegacyPrototype_CanBeginJohto(void);
 u16 LegacyPrototype_BeginJohto(void);
 u16 LegacyPrototype_UnlockJohtoLeague(void);
 u16 LegacyPrototype_FinishJohto(void);
+u16 LegacyPrototype_CanBeginHoenn(void);
+u16 LegacyPrototype_BeginHoenn(void);
+u16 LegacyPrototype_UnlockHoennLeague(void);
+u16 LegacyPrototype_FinishHoenn(void);
 
 #endif // GUARD_LEGACY_SYSTEM_H
