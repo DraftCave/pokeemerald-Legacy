@@ -30,10 +30,10 @@ jobs:
 
       - name: Apply Pokémon Legacy patches
         run: |
-          git apply --check patches/legacy_core.patch
-          git apply patches/legacy_core.patch
-          git apply --check patches/legacy_content.patch
-          git apply patches/legacy_content.patch
+          git apply --recount --check patches/legacy_core.patch
+          git apply --recount patches/legacy_core.patch
+          git apply --recount --check patches/legacy_content.patch
+          git apply --recount patches/legacy_content.patch
 
       - name: Build Emerald prototype
         env:
@@ -51,5 +51,6 @@ jobs:
         run: |
           echo "Pokémon Legacy prototype branch: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow validates both the core Legacy engine patch and the playable vertical-slice content patch." >> "$GITHUB_STEP_SUMMARY"
+          echo "Patch application uses git apply --recount because the staged patch hunks are maintained by connector edits." >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
-          echo "Local build: apply patches/legacy_core.patch, then patches/legacy_content.patch, then run make." >> "$GITHUB_STEP_SUMMARY"
+          echo "Local build: git apply --recount patches/legacy_core.patch; git apply --recount patches/legacy_content.patch; make" >> "$GITHUB_STEP_SUMMARY"
