@@ -93,6 +93,13 @@ void LegacySystem_BeginRegion(enum LegacyCampaignRegion region)
     if (region > LEGACY_REGION_HOENN)
         return;
 
+    // The script layer performs the same preflight so it can show friendly
+    // feedback, but the engine owns the safety invariant. No caller may move
+    // the campaign into a region unless every newly ineligible party veteran
+    // has a guaranteed PC destination.
+    if (!LegacySystem_CanVaultPartyForRegion(region))
+        return;
+
     VarSet(VAR_LEGACY_CURRENT_REGION, region);
     VarSet(VAR_LEGACY_ACCESS_MASK, 0);
 
@@ -377,6 +384,9 @@ static void CB2_GiveLegacyStarter(void)
 
 u16 LegacyPrototype_BeginJohto(void)
 {
+    if (!LegacySystem_CanVaultPartyForRegion(LEGACY_REGION_JOHTO))
+        return 0;
+
     LegacySystem_MarkRegionChampion(LEGACY_REGION_KANTO);
     LegacySystem_SetBadgeCount(LEGACY_REGION_KANTO, 8);
     LegacySystem_BeginRegion(LEGACY_REGION_JOHTO);
@@ -398,6 +408,9 @@ u16 LegacyPrototype_FinishJohto(void)
 
 u16 LegacyPrototype_BeginHoenn(void)
 {
+    if (!LegacySystem_CanVaultPartyForRegion(LEGACY_REGION_HOENN))
+        return 0;
+
     LegacySystem_MarkRegionChampion(LEGACY_REGION_JOHTO);
     LegacySystem_SetBadgeCount(LEGACY_REGION_JOHTO, 8);
     LegacySystem_BeginRegion(LEGACY_REGION_HOENN);
