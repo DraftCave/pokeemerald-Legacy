@@ -1,0 +1,52 @@
+name: Legacy Prototype
+
+on:
+  push:
+    branches:
+      - legacy-system-prototype
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  GAME_REVISION: 0
+  GAME_LANGUAGE: ENGLISH
+  COMPARE: 0
+  UNUSED_ERROR: 0
+  DEPRECATED_ERROR: 0
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
+
+      - name: Apply Pokémon Legacy engine patch
+        run: |
+          git apply --check patches/legacy_core.patch
+          git apply patches/legacy_core.patch
+
+      - name: Build Emerald prototype
+        env:
+          GAME_VERSION: EMERALD
+        run: make -j$(nproc) -O all
+
+      - name: Run expansion tests
+        env:
+          GAME_VERSION: EMERALD
+          TEST: 1
+        run: make -j$(nproc) check
+
+      - name: Record build summary
+        if: always()
+        run: |
+          echo "Pokémon Legacy prototype branch: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
+          echo "On a local machine, apply patches/legacy_core.patch and run make to create the personal test build." >> "$GITHUB_STEP_SUMMARY"
