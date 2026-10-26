@@ -10,7 +10,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: legacy-prototype-${{ github.ref }}
+  # Use the source branch for both push and pull_request events so the two
+  # triggers for this PR collapse into one active validation instead of
+  # occupying separate runner slots under refs/heads/* and refs/pull/*.
+  group: legacy-prototype-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
