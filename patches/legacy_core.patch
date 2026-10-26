@@ -1,3 +1,23 @@
+diff --git a/src/new_game.c b/src/new_game.c
+--- a/src/new_game.c
++++ b/src/new_game.c
+@@ -11,6 +11,7 @@
+ #include "script.h"
+ #include "lottery_corner.h"
+ #include "play_time.h"
++#include "legacy_system.h"
+ #include "mauville_old_man.h"
+ #include "match_call.h"
+ #include "lilycove_lady.h"
+@@ -169,6 +170,7 @@ void NewGameInitData(void)
+     InitPlayerTrainerId();
+     PlayTimeCounter_Reset();
+     ClearPokedexFlags();
+     InitEventData();
++    LegacySystem_Reset();
+     ClearTVShowData();
+     ResetGabbyAndTy();
+     ClearSecretBases();
 diff --git a/src/pokemon.c b/src/pokemon.c
 --- a/src/pokemon.c
 +++ b/src/pokemon.c
@@ -69,7 +89,7 @@ diff --git a/src/pokemon_storage_system.c b/src/pokemon_storage_system.c
      [MSG_CANT_STORE_MAIL]      = {COMPOUND_STRING("MAIL can't be stored!"),      MSG_VAR_NONE},
 +    [MSG_LEGACY_LOCKED]        = {COMPOUND_STRING("This POKéMON is Legacy-locked until the League."), MSG_VAR_NONE},
  };
-@@ -2639,8 +2642,17 @@ static void Task_PlaceMon(u8 taskId)
+@@ -2754,8 +2757,17 @@ static void Task_PlaceMon(u8 taskId)
      switch (sStorage->state)
      {
      case 0:
@@ -89,7 +109,7 @@ diff --git a/src/pokemon_storage_system.c b/src/pokemon_storage_system.c
          break;
      case 1:
          if (!DoMonPlaceChange())
-@@ -2651,6 +2663,14 @@ static void Task_PlaceMon(u8 taskId)
+@@ -2766,6 +2778,14 @@ static void Task_PlaceMon(u8 taskId)
                  SetPokeStorageTask(Task_PokeStorageMain);
          }
          break;
@@ -103,7 +123,7 @@ diff --git a/src/pokemon_storage_system.c b/src/pokemon_storage_system.c
      }
  }
  
-@@ -2660,8 +2680,17 @@ static void Task_ShiftMon(u8 taskId)
+@@ -2775,8 +2795,17 @@ static void Task_ShiftMon(u8 taskId)
      switch (sStorage->state)
      {
      case 0:
@@ -123,7 +143,7 @@ diff --git a/src/pokemon_storage_system.c b/src/pokemon_storage_system.c
          break;
      case 1:
          if (!DoMonPlaceChange())
-@@ -2671,6 +2700,14 @@ static void Task_ShiftMon(u8 taskId)
+@@ -2786,6 +2815,14 @@ static void Task_ShiftMon(u8 taskId)
              SetPokeStorageTask(Task_PokeStorageMain);
          }
          break;
@@ -137,12 +157,12 @@ diff --git a/src/pokemon_storage_system.c b/src/pokemon_storage_system.c
      }
  }
  
-@@ -2680,7 +2717,12 @@ static void Task_WithdrawMon(u8 taskId)
+@@ -2795,7 +2832,12 @@ static void Task_WithdrawMon(u8 taskId)
      switch (sStorage->state)
      {
      case 0:
 -        if (CalculatePlayerPartyCount() == PARTY_SIZE)
-+        if (!LegacySystem_IsBoxMonEligible(GetBoxedMonPtr(StorageGetCurrentBox(), sCursorPosition)))
++        if (!LegacySystem_IsBoxMonEligible(GetCursorBoxMon()))
 +        {
 +            PlaySE(SE_FAILURE);
 +            PrintMessage(MSG_LEGACY_LOCKED);
