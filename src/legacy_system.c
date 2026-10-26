@@ -3,7 +3,6 @@
 #include "legacy_system.h"
 #include "main.h"
 #include "overworld.h"
-#include "party_menu.h"
 #include "pokemon.h"
 #include "script_pokemon_util.h"
 #include "starter_choose.h"
@@ -11,6 +10,7 @@
 #include "constants/legacy_system.h"
 
 static void CB2_GiveLegacyStarter(void);
+static void LegacySystem_CompactPlayerParty(void);
 
 static u16 LegacySystem_GetRegionBit(enum LegacyCampaignRegion region)
 {
@@ -190,7 +190,7 @@ void LegacySystem_UnlockChampionsForCurrentLeague(void)
         break;
     }
 
-    // Only completed regional championship rosters are eligible to return.
+    // Only completed previous regions become accessible again.
     VarSet(VAR_LEGACY_ACCESS_MASK, VarGet(VAR_LEGACY_CHAMPION_MASK) & eligibleMask);
 }
 
@@ -299,6 +299,32 @@ bool8 LegacySystem_IsMonEligible(const struct Pokemon *mon)
     return LegacySystem_IsBoxMonEligible(&mon->box);
 }
 
+static void LegacySystem_CompactPlayerParty(void)
+{
+    s32 readSlot;
+    s32 writeSlot = 0;
+
+    for (readSlot = 0; readSlot < PARTY_SIZE; readSlot++)
+    {
+        if (GetMonData(&gParties[B_TRAINER_PLAYER][readSlot], MON_DATA_SPECIES) == SPECIES_NONE)
+            continue;
+
+        if (readSlot != writeSlot)
+        {
+            CopyMon(&gParties[B_TRAINER_PLAYER][writeSlot],
+                    &gParties[B_TRAINER_PLAYER][readSlot],
+                    sizeof(struct Pokemon));
+            ZeroMonData(&gParties[B_TRAINER_PLAYER][readSlot]);
+        }
+        writeSlot++;
+    }
+
+    for (; writeSlot < PARTY_SIZE; writeSlot++)
+        ZeroMonData(&gParties[B_TRAINER_PLAYER][writeSlot]);
+
+    CalculatePlayerPartyCount();
+}
+
 void LegacySystem_StoreLockedPartyMons(void)
 {
     s32 i;
@@ -317,8 +343,7 @@ void LegacySystem_StoreLockedPartyMons(void)
             ZeroMonData(mon);
     }
 
-    CompactPartySlots();
-    CalculatePlayerPartyCount();
+    LegacySystem_CompactPlayerParty();
 }
 
 // -----------------------------------------------------------------------------
