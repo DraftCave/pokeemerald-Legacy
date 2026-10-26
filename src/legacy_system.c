@@ -1,9 +1,16 @@
 #include "global.h"
 #include "event_data.h"
 #include "legacy_system.h"
+#include "main.h"
+#include "overworld.h"
 #include "party_menu.h"
 #include "pokemon.h"
+#include "script_pokemon_util.h"
+#include "starter_choose.h"
+#include "constants/items.h"
 #include "constants/legacy_system.h"
+
+static void CB2_GiveLegacyStarter(void);
 
 static u16 LegacySystem_GetRegionBit(enum LegacyCampaignRegion region)
 {
@@ -312,4 +319,43 @@ void LegacySystem_StoreLockedPartyMons(void)
 
     CompactPartySlots();
     CalculatePlayerPartyCount();
+}
+
+// -----------------------------------------------------------------------------
+// Script-facing prototype helpers
+// -----------------------------------------------------------------------------
+
+void ChooseLegacyStarter(void)
+{
+    SetMainCallback2(CB2_ChooseStarter);
+    gMain.savedCallback = CB2_GiveLegacyStarter;
+}
+
+static void CB2_GiveLegacyStarter(void)
+{
+    enum Species starterMon = GetStarterPokemon(gSpecialVar_Result);
+
+    ScriptGiveMon(starterMon, 5, ITEM_NONE);
+    SetMainCallback2(CB2_ReturnToFieldContinueScript);
+}
+
+u16 LegacyPrototype_BeginJohto(void)
+{
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_KANTO);
+    LegacySystem_SetBadgeCount(LEGACY_REGION_KANTO, 8);
+    LegacySystem_BeginRegion(LEGACY_REGION_JOHTO);
+    return LegacySystem_GetChampionMask();
+}
+
+u16 LegacyPrototype_UnlockJohtoLeague(void)
+{
+    LegacySystem_SetBadgeCount(LEGACY_REGION_JOHTO, 8);
+    LegacySystem_UnlockChampionsForCurrentLeague();
+    return LegacySystem_GetLegacyAccessMask();
+}
+
+u16 LegacyPrototype_FinishJohto(void)
+{
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_JOHTO);
+    return LegacySystem_GetChampionMask();
 }
