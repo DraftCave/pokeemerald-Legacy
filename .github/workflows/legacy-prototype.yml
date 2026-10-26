@@ -33,6 +33,11 @@ jobs:
           git apply --recount --check patches/legacy_core.patch
           git apply --recount patches/legacy_core.patch
 
+      - name: Install playable Legacy prototype content
+        run: |
+          python3 tools/apply_legacy_prototype_content.py
+          git diff --check
+
       - name: Build Emerald prototype
         env:
           GAME_VERSION: EMERALD
@@ -48,8 +53,7 @@ jobs:
         if: always()
         run: |
           echo "Pokémon Legacy prototype branch: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          echo "This gate validates the Legacy engine first: origin persistence, regional eligibility, transition/vault logic, starter selection hooks, and PC enforcement." >> "$GITHUB_STEP_SUMMARY"
-          echo "The vertical-slice content patch is intentionally excluded until the engine build/test gate is green; it will be regenerated against the exact current expansion files afterward." >> "$GITHUB_STEP_SUMMARY"
-          echo "Patch application uses git apply --recount because the staged patch hunks are maintained by connector edits." >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow validates the Legacy engine plus the temporary playable Kanto→Johto vertical-slice content." >> "$GITHUB_STEP_SUMMARY"
+          echo "Core integration is applied from patches/legacy_core.patch; prototype content is installed deterministically by tools/apply_legacy_prototype_content.py so upstream line-number drift does not break the content layer." >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
-          echo "Local engine build: git apply --recount patches/legacy_core.patch; make" >> "$GITHUB_STEP_SUMMARY"
+          echo "Local build: git apply --recount patches/legacy_core.patch; python3 tools/apply_legacy_prototype_content.py; make" >> "$GITHUB_STEP_SUMMARY"
