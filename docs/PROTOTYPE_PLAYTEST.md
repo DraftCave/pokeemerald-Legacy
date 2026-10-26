@@ -12,7 +12,7 @@ From a checkout of `legacy-system-prototype`, the preferred local command is:
 bash tools/build_legacy_prototype.sh
 ```
 
-The helper safely detects whether the core patch is already applied, installs the deterministic Kanto/Johto content, transition-capacity guard, and Hoenn prototype content, then builds `pokeemerald.gba`.
+The helper safely detects whether the core patch is already applied, installs the deterministic Kanto/Johto content, transition-capacity guard, Hoenn prototype content, and terminal-state routing, then builds `pokeemerald.gba`.
 
 Equivalent manual sequence:
 
@@ -21,6 +21,7 @@ git apply --recount patches/legacy_core.patch
 python3 tools/apply_legacy_prototype_content.py
 python3 tools/apply_legacy_transition_guard.py
 python3 tools/apply_legacy_hoenn_prototype.py
+python3 tools/apply_legacy_terminal_routing.py
 make -j$(nproc)
 ```
 
@@ -54,7 +55,7 @@ Expected result: new Pokémon obtained during this phase are Kanto-origin and us
 7. Choose one and confirm it is Lv. 5.
 8. Save immediately, reset/reload, and continue.
 
-Expected result: the Kanto Pokémon still exist unchanged in storage and the active journey is now Johto.
+Expected result: the Kanto Pokémon still exist unchanged in storage and the active journey is now Johto. Their stored move PP must match the pre-transition values; Legacy vaulting must not heal or otherwise rewrite them.
 
 ### 3. Kanto Legacy lock verification
 
@@ -87,7 +88,7 @@ Expected message:
 6. Build a mixed Kanto + Johto party.
 7. Save/reload with the mixed party and confirm both origins remain usable.
 
-Expected result: completed Kanto veterans are available again without any change to level, moves, held item, nickname, OT data, or identity.
+Expected result: completed Kanto veterans are available again without any change to level, moves, move PP, held item, nickname, OT data, or identity.
 
 ### 6. Johto finale / transition to Hoenn
 
@@ -130,6 +131,7 @@ Expected result: all three campaign origins can coexist for the Hoenn League pha
 4. Confirm the campaign enters postgame.
 5. Save/reload.
 6. Confirm all regional restrictions remain removed and the entire collection is available.
+7. Return to the earlier prototype NPCs in Oldale and Petalburg and confirm they show terminal/postgame dialogue rather than reopening old League transitions.
 
 ## PC-capacity transition test
 
@@ -138,11 +140,11 @@ Perform this test at least once before accepting the prototype:
 1. Before a region-ending boss/transition, fill PC storage until fewer free slots remain than the number of active party Pokémon that must be vaulted.
 2. Attempt the transition.
 3. Confirm the game refuses to begin the transition and tells the player to free PC storage.
-4. Confirm no Pokémon is moved, deleted, duplicated, or changed.
+4. Confirm no Pokémon is moved, deleted, duplicated, healed, or otherwise changed.
 5. Free enough PC slots.
 6. Retry and confirm the transition proceeds normally.
 
-This guard is currently wired for both Kanto → Johto and Johto → Hoenn.
+This guard is currently wired for both Kanto → Johto and Johto → Hoenn. The guard counts all free PC slots, matching the storage search behavior used by the Legacy vault.
 
 ## Destructive-safety checks
 
@@ -151,10 +153,11 @@ At every transition, specifically verify:
 - no Pokémon disappears;
 - no Pokémon is duplicated;
 - origin eligibility does not change after evolution;
-- level, moves, held item, nickname, OT data, and stats remain intact through locking/unlocking;
+- level, moves, move PP, held item, nickname, OT data, and persistent stats remain intact through locking/unlocking;
 - save/reload does not reset current region, Champion state, badge state, or Legacy access;
 - PC movement does not rewrite origin;
-- a failed storage-capacity preflight does not partially transition campaign state.
+- a failed storage-capacity preflight does not partially transition campaign state;
+- Legacy vaulting does not use the normal `CopyMonToPC()` PP-healing behavior.
 
 ## Known prototype limitations
 
@@ -170,4 +173,4 @@ At every transition, specifically verify:
 
 The prototype is accepted only when the complete sequence works in an emulator:
 
-**Kanto Lv.5 starter → Kanto catches → RED → safe vault → Johto Lv.5 starter → Kanto locked → Johto catches → Johto checkpoint → Kanto veterans restored → mixed team → LANCE → safe vault → Hoenn Lv.5 starter → Kanto+Johto locked → Hoenn catches → Hoenn checkpoint → all veterans restored → three-origin team → WALLACE → postgame → save/reload remains correct.**
+**Kanto Lv.5 starter → Kanto catches → RED → safe vault → Johto Lv.5 starter → Kanto locked → Johto catches → Johto checkpoint → Kanto veterans restored → mixed team → LANCE → safe vault → Hoenn Lv.5 starter → Kanto+Johto locked → Hoenn catches → Hoenn checkpoint → all veterans restored → three-origin team → WALLACE → postgame → terminal routing → save/reload remains correct.**
