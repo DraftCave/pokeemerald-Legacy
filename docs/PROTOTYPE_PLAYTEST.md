@@ -10,13 +10,15 @@ From a clean checkout of `legacy-system-prototype`:
 
 ```sh
 git apply --recount patches/legacy_core.patch
+python3 tools/apply_legacy_transition_guard.py
 python3 tools/apply_legacy_prototype_content.py
-make -j$(nproc)
+make -j$(nproc) -O all
+make -j$(nproc) check
 ```
 
-The GitHub Actions workflow `.github/workflows/legacy-prototype.yml` runs the same integration path and then executes the expansion test suite.
+The GitHub Actions workflow `.github/workflows/legacy-prototype.yml` runs this same integration path.
 
-Do not treat a successful CI build as a substitute for emulator playtesting of save/reload and UI behavior.
+Do not treat a successful CI build as a substitute for emulator playtesting of save/reload, PC UI behavior, and map/script progression.
 
 ## Acceptance playthrough
 
@@ -36,13 +38,14 @@ Expected result: new Pokémon obtained during this phase are Kanto-origin and us
 ### 2. Compact Kanto League / transition
 
 1. In Oldale Town, speak to the girl NPC used by the prototype.
-2. Defeat the temporary Kanto League boss (RED).
-3. Confirm the game announces Kanto completion.
-4. Confirm the previous active Kanto team is moved safely into PC storage.
-5. Confirm the Johto starter selector opens.
-6. Confirm the choices are **Chikorita / Cyndaquil / Totodile**.
-7. Choose one and confirm it is Lv. 5.
-8. Save immediately, reset/reload, and continue.
+2. If PC storage does not have enough free slots for the active Kanto veterans that must be vaulted, confirm the transition is blocked before the League battle begins and no Pokémon is moved or deleted.
+3. With enough PC capacity, defeat the temporary Kanto League boss (RED).
+4. Confirm the game announces Kanto completion.
+5. Confirm the previous active Kanto team is moved safely into PC storage.
+6. Confirm the Johto starter selector opens.
+7. Confirm the choices are **Chikorita / Cyndaquil / Totodile**.
+8. Choose one and confirm it is Lv. 5.
+9. Save immediately, reset/reload, and continue.
 
 Expected result: the Kanto Pokémon still exist unchanged in storage and the active journey is now Johto.
 
@@ -93,6 +96,7 @@ At every transition, specifically verify:
 
 - no Pokémon disappears;
 - no Pokémon is duplicated;
+- insufficient PC capacity blocks the transition before destructive movement begins;
 - origin eligibility does not change after evolution;
 - level, moves, held item, nickname, OT data, and stats remain intact through locking/unlocking;
 - save/reload does not reset current region, Champion state, badge state, or Legacy access;
@@ -103,7 +107,7 @@ At every transition, specifically verify:
 - Emerald geography is temporary scaffolding, not Kanto/Johto map recreation.
 - Route 102 is not yet physically gated behind the Kanto boss, so a player deliberately walking there early can see Johto-style prototype content before the intended transition. Final regions must enforce progression spatially/story-wise.
 - The prototype currently uses existing trainer IDs and NPCs as disposable test hooks.
-- If PC storage is completely full during a region transition, the safety-first engine leaves an ineligible veteran in the party rather than destroying it. The final game needs a transition blocker or dedicated Legacy Vault capacity before release.
+- Transition capacity is safety-guarded, but the final game still needs a polished player-facing Legacy Vault/transition UX rather than prototype blocking behavior.
 - Link/trade compatibility of the two origin bits is not yet certified.
 - CI can prove compilation and automated tests, but emulator playtesting is still required for UI flow and actual save/reload behavior.
 
