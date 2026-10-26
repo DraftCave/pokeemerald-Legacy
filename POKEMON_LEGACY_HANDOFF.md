@@ -11,8 +11,8 @@ This file is the first thing a new ChatGPT session should read before continuing
 - Primary architecture doc: `docs/LEGACY_SYSTEM.md`
 - Manual acceptance checklist: `docs/PROTOTYPE_PLAYTEST.md`
 - Engine integration patch: `patches/legacy_core.patch`
-- Safe-transition installer: `tools/apply_legacy_transition_guard.py`
 - Deterministic playable-content installer: `tools/apply_legacy_prototype_content.py`
+- Safe-transition installer: `tools/apply_legacy_transition_guard.py`
 - Prototype CI workflow: `.github/workflows/legacy-prototype.yml`
 
 Current repository state wins over this handoff if newer commits exist.
@@ -109,7 +109,9 @@ Summary viewing may remain available; locking is an eligibility restriction, not
 
 The transition checks that enough PC storage exists for the veterans that must be vaulted **before** the League/transition sequence can proceed. Insufficient capacity blocks the transition instead of risking deletion, partial movement, or an ineligible veteran being stranded in the party.
 
-This must still be manually emulator-tested; compilation alone does not certify runtime UI/save behavior.
+The actual vault call was traced and verified in source: `LegacyPrototype_BeginJohto()` calls `LegacySystem_BeginRegion(LEGACY_REGION_JOHTO)`, and `LegacySystem_BeginRegion()` calls `LegacySystem_StoreLockedPartyMons()` after the destination region/access state is set. Thus the Kanto veterans become ineligible and are then safely copied to PC before their party slots are cleared.
+
+This still requires manual emulator verification; source tracing/compilation does not certify runtime UI/save behavior.
 
 ## Playable vertical-slice integration
 
@@ -148,8 +150,8 @@ Do not overstate this section.
 ### Verified
 
 - Core Legacy patch applies in GitHub Actions.
-- Transition-guard installer applies in GitHub Actions.
 - Deterministic playable-content installer applies in GitHub Actions.
+- Transition-guard installer applies after the content installer in GitHub Actions.
 - The integrated playable vertical slice has completed the **Emerald compile successfully** in the focused `Legacy Prototype` workflow.
 - An earlier engine-only checkpoint completed the expansion suite successfully.
 
@@ -166,11 +168,13 @@ From a clean checkout of `legacy-system-prototype`, the focused workflow perform
 
 ```sh
 git apply --recount patches/legacy_core.patch
-python3 tools/apply_legacy_transition_guard.py
 python3 tools/apply_legacy_prototype_content.py
+python3 tools/apply_legacy_transition_guard.py
 make -j$(nproc) -O all
 make -j$(nproc) check
 ```
+
+**Installer order matters:** the transition guard patches the prototype Oldale script produced by the playable-content installer, so run the content installer first.
 
 The workflow does not publish or commit a copyrighted commercial ROM.
 
