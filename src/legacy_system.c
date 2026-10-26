@@ -4,6 +4,7 @@
 #include "main.h"
 #include "overworld.h"
 #include "pokemon.h"
+#include "pokemon_storage_system.h"
 #include "script_pokemon_util.h"
 #include "starter_choose.h"
 #include "constants/items.h"
@@ -11,6 +12,7 @@
 
 static void CB2_GiveLegacyStarter(void);
 static void LegacySystem_CompactPlayerParty(void);
+static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(const struct BoxPokemon *boxMon);
 
 static u16 LegacySystem_GetRegionBit(enum LegacyCampaignRegion region)
 {
@@ -325,6 +327,39 @@ static void LegacySystem_CompactPlayerParty(void)
     CalculatePlayerPartyCount();
 }
 
+static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(const struct BoxPokemon *boxMon)
+{
+    u8 startBox;
+    u8 box;
+
+    if (gPokemonStoragePtr == NULL)
+        return FALSE;
+
+    startBox = StorageGetCurrentBox();
+    box = startBox;
+
+    do
+    {
+        s16 boxPos = GetFirstFreeBoxSpot(box);
+
+        if (boxPos >= 0)
+        {
+            // Do not call CopyMonToPC here. That normal gameplay helper calls
+            // MonRestorePP before storing the Pokémon, which would silently
+            // modify a veteran during a Legacy transition. Copy the persistent
+            // BoxPokemon payload exactly as-is instead.
+            CopyMon(GetBoxedMonPtr(box, boxPos), boxMon, sizeof(*boxMon));
+            return TRUE;
+        }
+
+        box++;
+        if (box == TOTAL_BOXES_COUNT)
+            box = 0;
+    } while (box != startBox);
+
+    return FALSE;
+}
+
 void LegacySystem_StoreLockedPartyMons(void)
 {
     s32 i;
@@ -338,8 +373,9 @@ void LegacySystem_StoreLockedPartyMons(void)
         if (LegacySystem_IsMonEligible(mon))
             continue;
 
-        // Never destroy a veteran unless the PC copy succeeds.
-        if (CopyMonToPC(mon) != MON_CANT_GIVE)
+        // Never destroy or mutate a veteran unless an exact persistent copy
+        // was successfully written to PC storage first.
+        if (LegacySystem_CopyBoxMonToStoragePreservingState(&mon->box))
             ZeroMonData(mon);
     }
 
