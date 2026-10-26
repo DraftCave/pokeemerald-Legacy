@@ -3,6 +3,7 @@
 #include "legacy_system.h"
 #include "pokemon.h"
 #include "test/test.h"
+#include "constants/legacy_system.h"
 
 static void ResetLegacyTestState(void)
 {
