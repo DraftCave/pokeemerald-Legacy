@@ -20,6 +20,7 @@ fi
 python3 tools/apply_legacy_prototype_content.py
 python3 tools/apply_legacy_transition_guard.py
 python3 tools/apply_legacy_hoenn_prototype.py
+python3 tools/apply_legacy_terminal_routing.py
 
 if ! git diff --check; then
     echo "ERROR: generated prototype edits failed git diff --check." >&2
