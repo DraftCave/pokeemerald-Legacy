@@ -36,21 +36,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
 
-      - name: Apply Pokémon Legacy core patch
+      - name: Prepare and validate three-region Legacy prototype
         run: |
-          git apply --recount --check patches/legacy_core.patch
-          git apply --recount patches/legacy_core.patch
-
-      - name: Install playable three-region Legacy prototype content
-        run: |
-          python3 tools/apply_legacy_prototype_content.py
-          python3 tools/apply_legacy_transition_guard.py
-          python3 tools/apply_legacy_hoenn_prototype.py
-          python3 tools/apply_legacy_terminal_routing.py
-          git diff --check
-
-      - name: Validate three-region prototype semantics
-        run: python3 tools/validate_legacy_prototype.py
+          bash tools/build_legacy_prototype.sh --prepare
+          git apply --recount --reverse --check patches/legacy_core.patch
 
       - name: Build Emerald prototype
         env:
@@ -69,8 +58,9 @@ jobs:
         run: |
           echo "Pokémon Legacy prototype branch: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "This workflow validates the Legacy engine plus the temporary playable Kanto→Johto→Hoenn vertical slice." >> "$GITHUB_STEP_SUMMARY"
+          echo "Local and CI preparation share tools/build_legacy_prototype.sh, preventing installer-order drift." >> "$GITHUB_STEP_SUMMARY"
           echo "Semantic validation checks regional routing, encounter pools, terminal states, boss progression, and vault invariants before compilation." >> "$GITHUB_STEP_SUMMARY"
           echo "A full expansion regression suite already passed for the Legacy core. Normal prototype iteration runs the focused legacy_system.c tests after a complete Emerald build." >> "$GITHUB_STEP_SUMMARY"
-          echo "Prototype content is installed deterministically so upstream line-number drift does not silently move edits." >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
           echo "Local build: bash tools/build_legacy_prototype.sh" >> "$GITHUB_STEP_SUMMARY"
+          echo "Local build + focused tests: bash tools/build_legacy_prototype.sh --check" >> "$GITHUB_STEP_SUMMARY"
