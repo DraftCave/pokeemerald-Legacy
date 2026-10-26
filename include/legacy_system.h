@@ -50,6 +50,7 @@ bool8 LegacySystem_IsBoxMonEligible(const struct BoxPokemon *boxMon);
 bool8 LegacySystem_IsMonEligible(const struct Pokemon *mon);
 void LegacySystem_StoreLockedPartyMons(void);
 bool8 LegacySystem_CanVaultPartyForRegion(enum LegacyCampaignRegion targetRegion);
+bool8 LegacySystem_IsDaycareSlotEligible(u8 slot);
 
 // Script-facing helpers used only by the vertical-slice prototype.
 void ChooseLegacyStarter(void);
@@ -61,5 +62,6 @@ u16 LegacyPrototype_CanBeginHoenn(void);
 u16 LegacyPrototype_BeginHoenn(void);
 u16 LegacyPrototype_UnlockHoennLeague(void);
 u16 LegacyPrototype_FinishHoenn(void);
+u16 LegacyPrototype_CanTakeDaycareMon(void);
 
 #endif // GUARD_LEGACY_SYSTEM_H
