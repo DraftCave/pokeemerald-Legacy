@@ -43,6 +43,7 @@ jobs:
           python3 tools/apply_legacy_prototype_content.py
           python3 tools/apply_legacy_transition_guard.py
           python3 tools/apply_legacy_hoenn_prototype.py
+          python3 tools/apply_legacy_terminal_routing.py
           git diff --check
 
       - name: Build Emerald prototype
@@ -65,4 +66,4 @@ jobs:
           echo "A full expansion regression suite already passed for the Legacy core. Normal prototype iteration runs the focused legacy_system.c tests after a complete Emerald build." >> "$GITHUB_STEP_SUMMARY"
           echo "Prototype content is installed deterministically so upstream line-number drift does not silently move edits." >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
-          echo "Local build: git apply --recount patches/legacy_core.patch; python3 tools/apply_legacy_prototype_content.py; python3 tools/apply_legacy_transition_guard.py; python3 tools/apply_legacy_hoenn_prototype.py; make" >> "$GITHUB_STEP_SUMMARY"
+          echo "Local build: bash tools/build_legacy_prototype.sh" >> "$GITHUB_STEP_SUMMARY"
