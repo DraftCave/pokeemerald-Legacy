@@ -101,6 +101,60 @@ TEST("Hoenn League access restores both completed previous regions")
     EXPECT(LegacySystem_IsMonEligible(&hoennMon));
 }
 
+TEST("Hoenn League only restores previous regions that were actually completed")
+{
+    struct Pokemon kantoMon;
+    struct Pokemon johtoMon;
+
+    ResetLegacyTestState();
+    CreateTestMon(&kantoMon, SPECIES_BLASTOISE);
+    CreateTestMon(&johtoMon, SPECIES_MEGANIUM);
+    LegacySystem_SetMonOrigin(&kantoMon, LEGACY_ORIGIN_KANTO);
+    LegacySystem_SetMonOrigin(&johtoMon, LEGACY_ORIGIN_JOHTO);
+
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_KANTO);
+    LegacySystem_BeginRegion(LEGACY_REGION_HOENN);
+    LegacySystem_UnlockChampionsForCurrentLeague();
+
+    EXPECT(LegacySystem_IsMonEligible(&kantoMon));
+    EXPECT(!LegacySystem_IsMonEligible(&johtoMon));
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), LEGACY_REGION_MASK_KANTO);
+}
+
+TEST("Prototype helpers advance Kanto through Johto and Hoenn into postgame")
+{
+    ResetLegacyTestState();
+
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_KANTO);
+    EXPECT_EQ(LegacySystem_GetChampionMask(), 0);
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), 0);
+
+    EXPECT_EQ(LegacyPrototype_BeginJohto(), LEGACY_REGION_MASK_KANTO);
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_JOHTO);
+    EXPECT_EQ(LegacySystem_GetBadgeCount(LEGACY_REGION_KANTO), 8);
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), 0);
+
+    EXPECT_EQ(LegacyPrototype_UnlockJohtoLeague(), LEGACY_REGION_MASK_KANTO);
+    EXPECT_EQ(LegacySystem_GetBadgeCount(LEGACY_REGION_JOHTO), 8);
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), LEGACY_REGION_MASK_KANTO);
+
+    EXPECT_EQ(LegacyPrototype_FinishJohto(), LEGACY_REGION_MASK_KANTO | LEGACY_REGION_MASK_JOHTO);
+
+    EXPECT_EQ(LegacyPrototype_BeginHoenn(), LEGACY_REGION_MASK_KANTO | LEGACY_REGION_MASK_JOHTO);
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_HOENN);
+    EXPECT_EQ(LegacySystem_GetBadgeCount(LEGACY_REGION_JOHTO), 8);
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), 0);
+
+    EXPECT_EQ(LegacyPrototype_UnlockHoennLeague(), LEGACY_REGION_MASK_KANTO | LEGACY_REGION_MASK_JOHTO);
+    EXPECT_EQ(LegacySystem_GetBadgeCount(LEGACY_REGION_HOENN), 8);
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), LEGACY_REGION_MASK_KANTO | LEGACY_REGION_MASK_JOHTO);
+
+    EXPECT_EQ(LegacyPrototype_FinishHoenn(), LEGACY_REGION_MASK_ALL);
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_POSTGAME);
+    EXPECT_EQ(LegacySystem_GetChampionMask(), LEGACY_REGION_MASK_ALL);
+    EXPECT_EQ(LegacySystem_GetLegacyAccessMask(), LEGACY_REGION_MASK_ALL);
+}
+
 TEST("Completing Hoenn enters postgame and removes regional eligibility restrictions")
 {
     struct Pokemon kantoMon;
