@@ -1,12 +1,25 @@
 #ifndef GUARD_LEGACY_SYSTEM_H
 #define GUARD_LEGACY_SYSTEM_H
 
+struct BoxPokemon;
+struct Pokemon;
+
 enum LegacyCampaignRegion
 {
     LEGACY_REGION_KANTO = 0,
     LEGACY_REGION_JOHTO,
     LEGACY_REGION_HOENN,
     LEGACY_REGION_POSTGAME,
+};
+
+// Stored on each individual Pokemon. Zero is intentionally UNSET so old saves
+// and freshly zeroed structs fail closed instead of being misclassified as Kanto.
+enum LegacyPokemonOrigin
+{
+    LEGACY_ORIGIN_UNSET = 0,
+    LEGACY_ORIGIN_KANTO,
+    LEGACY_ORIGIN_JOHTO,
+    LEGACY_ORIGIN_HOENN,
 };
 
 void LegacySystem_Reset(void);
@@ -27,5 +40,14 @@ bool8 LegacySystem_IsRegionAccessible(enum LegacyCampaignRegion region);
 
 u16 LegacySystem_GetLegacyAccessMask(void);
 u16 LegacySystem_GetChampionMask(void);
+
+enum LegacyPokemonOrigin LegacySystem_GetBoxMonOrigin(const struct BoxPokemon *boxMon);
+enum LegacyPokemonOrigin LegacySystem_GetMonOrigin(const struct Pokemon *mon);
+void LegacySystem_SetBoxMonOrigin(struct BoxPokemon *boxMon, enum LegacyPokemonOrigin origin);
+void LegacySystem_SetMonOrigin(struct Pokemon *mon, enum LegacyPokemonOrigin origin);
+void LegacySystem_AssignCurrentRegionOrigin(struct Pokemon *mon);
+bool8 LegacySystem_IsBoxMonEligible(const struct BoxPokemon *boxMon);
+bool8 LegacySystem_IsMonEligible(const struct Pokemon *mon);
+void LegacySystem_StoreLockedPartyMons(void);
 
 #endif // GUARD_LEGACY_SYSTEM_H
