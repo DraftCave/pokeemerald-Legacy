@@ -3,6 +3,7 @@
 #include "legacy_system.h"
 #include "pokemon.h"
 #include "test/test.h"
+#include "constants/legacy_system.h"
 
 static void ResetLegacyTestState(void)
 {
@@ -95,6 +96,32 @@ TEST("Hoenn League access restores both completed previous regions")
 
     LegacySystem_UnlockChampionsForCurrentLeague();
 
+    EXPECT(LegacySystem_IsMonEligible(&kantoMon));
+    EXPECT(LegacySystem_IsMonEligible(&johtoMon));
+    EXPECT(LegacySystem_IsMonEligible(&hoennMon));
+}
+
+TEST("Completing Hoenn enters postgame and removes regional eligibility restrictions")
+{
+    struct Pokemon kantoMon;
+    struct Pokemon johtoMon;
+    struct Pokemon hoennMon;
+
+    ResetLegacyTestState();
+    CreateTestMon(&kantoMon, SPECIES_CHARIZARD);
+    CreateTestMon(&johtoMon, SPECIES_FERALIGATR);
+    CreateTestMon(&hoennMon, SPECIES_SCEPTILE);
+    LegacySystem_SetMonOrigin(&kantoMon, LEGACY_ORIGIN_KANTO);
+    LegacySystem_SetMonOrigin(&johtoMon, LEGACY_ORIGIN_JOHTO);
+    LegacySystem_SetMonOrigin(&hoennMon, LEGACY_ORIGIN_HOENN);
+
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_KANTO);
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_JOHTO);
+    LegacySystem_BeginRegion(LEGACY_REGION_HOENN);
+    LegacyPrototype_FinishHoenn();
+
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_POSTGAME);
+    EXPECT_EQ(LegacySystem_GetChampionMask(), LEGACY_REGION_MASK_ALL);
     EXPECT(LegacySystem_IsMonEligible(&kantoMon));
     EXPECT(LegacySystem_IsMonEligible(&johtoMon));
     EXPECT(LegacySystem_IsMonEligible(&hoennMon));

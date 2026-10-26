@@ -74,3 +74,8 @@ u16 LegacyPrototype_CanBeginJohto(void)
 {
     return LegacySystem_CanVaultPartyForRegion(LEGACY_REGION_JOHTO);
 }
+
+u16 LegacyPrototype_CanBeginHoenn(void)
+{
+    return LegacySystem_CanVaultPartyForRegion(LEGACY_REGION_HOENN);
+}
