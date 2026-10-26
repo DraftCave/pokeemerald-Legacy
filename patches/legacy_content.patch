@@ -1,0 +1,582 @@
+diff --git a/data/specials.inc b/data/specials.inc
+--- a/data/specials.inc
++++ b/data/specials.inc
+@@ -170,6 +170,10 @@
+ 	def_special Special_ViewWallClock, waitstate=1
+ 	def_special ChooseStarter, waitstate=1
++	def_special ChooseLegacyStarter, waitstate=1
++	def_special LegacyPrototype_BeginJohto
++	def_special LegacyPrototype_UnlockJohtoLeague
++	def_special LegacyPrototype_FinishJohto
+ 	def_special StartWallyTutorialBattle, waitstate=1
+ 	def_special ChangePokemonNickname, waitstate=1
+ 	def_special ChoosePartyMon, waitstate=1
+
+diff --git a/data/maps/OldaleTown/scripts.inc b/data/maps/OldaleTown/scripts.inc
+--- a/data/maps/OldaleTown/scripts.inc
++++ b/data/maps/OldaleTown/scripts.inc
+@@ -30,8 +30,55 @@ OldaleTown_EventScript_TownSign::
+ 	end
+ 
+ OldaleTown_EventScript_Girl::
+-	msgbox OldaleTown_Text_SavingMyProgress, MSGBOX_NPC
++	lock
++	faceplayer
++	goto_if_eq VAR_UNUSED_0x40FA, 3, OldaleTown_EventScript_LegacyComplete
++	goto_if_eq VAR_UNUSED_0x40F8, 1, OldaleTown_EventScript_JohtoActive
++	trainerbattle_single TRAINER_SAWYER_1, OldaleTown_Text_LegacyKantoChallenge, OldaleTown_Text_LegacyKantoDefeated, OldaleTown_EventScript_LegacyBeginJohto
++	msgbox OldaleTown_Text_LegacyKantoReady, MSGBOX_DEFAULT
++	release
++	end
++
++OldaleTown_EventScript_LegacyBeginJohto::
++	special LegacyPrototype_BeginJohto
++	msgbox OldaleTown_Text_LegacyKantoChampion, MSGBOX_DEFAULT
++	special ChooseLegacyStarter
++	msgbox OldaleTown_Text_LegacyJohtoBegins, MSGBOX_DEFAULT
++	release
++	end
++
++OldaleTown_EventScript_JohtoActive::
++	goto_if_eq VAR_UNUSED_0x40F9, 1, OldaleTown_EventScript_JohtoLeagueOpen
++	msgbox OldaleTown_Text_LegacyJohtoJourney, MSGBOX_DEFAULT
++	release
++	end
++
++OldaleTown_EventScript_JohtoLeagueOpen::
++	msgbox OldaleTown_Text_LegacyVeteransReturned, MSGBOX_DEFAULT
++	release
++	end
++
++OldaleTown_EventScript_LegacyComplete::
++	msgbox OldaleTown_Text_LegacyComplete, MSGBOX_DEFAULT
++	release
+ 	end
++
++OldaleTown_Text_LegacyKantoChallenge:
++	.string "This is the KANTO LEAGUE test.\p"
++	.string "Show me the team you built on your first journey!$"
++
++OldaleTown_Text_LegacyKantoDefeated:
++	.string "You earned the title of KANTO CHAMPION!$"
++
++OldaleTown_Text_LegacyKantoReady:
++	.string "Your KANTO League title is already recorded.\p"
++	.string "Your next journey is waiting.$"
++
++OldaleTown_Text_LegacyKantoChampion:
++	.string "KANTO is complete.\p"
++	.string "Your veteran POKéMON are safe in the PC, but they are now Legacy-locked.\p"
++	.string "JOHTO begins with a fresh partner.$"
++
++OldaleTown_Text_LegacyJohtoBegins:
++	.string "Take your new Lv. 5 partner west through ROUTE 102.\p"
++	.string "Build a new team. Your KANTO veterans return at the JOHTO League.$"
++
++OldaleTown_Text_LegacyJohtoJourney:
++	.string "This is your JOHTO journey now.\p"
++	.string "Your KANTO champions remain safely locked until the League checkpoint in PETALBURG.$"
++
++OldaleTown_Text_LegacyVeteransReturned:
++	.string "Legacy access is active.\p"
++	.string "Your KANTO veterans may be withdrawn from the PC again.$"
++
++OldaleTown_Text_LegacyComplete:
++	.string "KANTO and JOHTO are both complete.\p"
++	.string "The Legacy System vertical slice is complete!$"
+ 
+ OldaleTown_EventScript_MartEmployee::
+ 	lock
+
+diff --git a/data/maps/PetalburgCity/scripts.inc b/data/maps/PetalburgCity/scripts.inc
+--- a/data/maps/PetalburgCity/scripts.inc
++++ b/data/maps/PetalburgCity/scripts.inc
+@@ -79,13 +79,55 @@ PetalburgCity_EventScript_WalkToWallyHouse::
+ 	end
+ 
+ PetalburgCity_EventScript_Boy::
+ 	lock
+ 	faceplayer
+-	msgbox PetalburgCity_Text_WaterReflection, MSGBOX_DEFAULT
+-	closemessage
+-	applymovement LOCALID_PETALBURG_BOY, Common_Movement_FaceOriginalDirection
+-	waitmovement 0
++	goto_if_eq VAR_UNUSED_0x40FA, 3, PetalburgCity_EventScript_LegacyComplete
++	goto_if_eq VAR_UNUSED_0x40F8, 1, PetalburgCity_EventScript_LegacyJohto
++	msgbox PetalburgCity_Text_LegacyFinishKanto, MSGBOX_DEFAULT
+ 	release
+ 	end
++
++PetalburgCity_EventScript_LegacyJohto::
++	goto_if_eq VAR_UNUSED_0x40F9, 0, PetalburgCity_EventScript_UnlockLegacy
++	trainerbattle_single TRAINER_GABRIELLE_1, PetalburgCity_Text_LegacyJohtoChallenge, PetalburgCity_Text_LegacyJohtoDefeated, PetalburgCity_EventScript_FinishJohto
++	msgbox PetalburgCity_Text_LegacyLeagueReady, MSGBOX_DEFAULT
++	release
++	end
++
++PetalburgCity_EventScript_UnlockLegacy::
++	special LegacyPrototype_UnlockJohtoLeague
++	msgbox PetalburgCity_Text_LegacyUnlocked, MSGBOX_DEFAULT
++	release
++	end
++
++PetalburgCity_EventScript_FinishJohto::
++	special LegacyPrototype_FinishJohto
++	msgbox PetalburgCity_Text_LegacyJohtoChampion, MSGBOX_DEFAULT
++	release
++	end
++
++PetalburgCity_EventScript_LegacyComplete::
++	msgbox PetalburgCity_Text_LegacyComplete, MSGBOX_DEFAULT
++	release
++	end
++
++PetalburgCity_Text_LegacyFinishKanto:
++	.string "The JOHTO checkpoint is not active yet.\p"
++	.string "Finish the KANTO test League in OLDALE first.$"
++
++PetalburgCity_Text_LegacyUnlocked:
++	.string "Eight JOHTO badges are simulated for this vertical slice.\p"
++	.string "LEGACY ACCESS RESTORED!\p"
++	.string "Your KANTO veterans can be withdrawn from the PC. Build your mixed team, then speak to me again.$"
++
++PetalburgCity_Text_LegacyJohtoChallenge:
++	.string "Your new team got you here. Your old champions can stand beside them now.\p"
++	.string "This JOHTO League is stronger than KANTO. Show me your Legacy team!$"
++
++PetalburgCity_Text_LegacyJohtoDefeated:
++	.string "You conquered the second League!$"
++
++PetalburgCity_Text_LegacyLeagueReady:
++	.string "Legacy access is active. Prepare your best mixed KANTO-JOHTO team.$"
++
++PetalburgCity_Text_LegacyJohtoChampion:
++	.string "JOHTO CHAMPION recorded!\p"
++	.string "The vertical slice is complete: fresh journey, locked veterans, League unlock, mixed-team finale.$"
++
++PetalburgCity_Text_LegacyComplete:
++	.string "Two generations. Two championships.\p"
++	.string "Next comes HOENN.$"
+ 
+ PetalburgCity_EventScript_WallysMom::
+ 	msgbox PetalburgCity_Text_WhereIsWally, MSGBOX_NPC
+
+diff --git a/data/maps/Route102/scripts.inc b/data/maps/Route102/scripts.inc
+--- a/data/maps/Route102/scripts.inc
++++ b/data/maps/Route102/scripts.inc
+@@ -15,18 +15,9 @@ Route102_EventScript_Boy::
+ 	end
+ 
+ Route102_EventScript_Calvin::
+-	trainerbattle_single TRAINER_CALVIN_1, Route102_Text_CalvinIntro, Route102_Text_CalvinDefeated, Route102_EventScript_CalvinRegisterMatchCallAfterBattle
+-	specialvar VAR_RESULT, ShouldTryRematchBattle
+-	goto_if_eq VAR_RESULT, TRUE, Route102_EventScript_CalvinRematch
+-	setvar VAR_0x8004, TRAINER_CALVIN_1
+-	specialvar VAR_RESULT, IsTrainerRegistered
+-	goto_if_eq VAR_RESULT, FALSE, Route102_EventScript_CalvinTryRegister
++	trainerbattle_single TRAINER_GRUNT_AQUA_HIDEOUT_1, Route102_Text_CalvinIntro, Route102_Text_CalvinDefeated
+ 	msgbox Route102_Text_CalvinPostBattle, MSGBOX_DEFAULT
+-	release
+ 	end
+@@ -62,15 +53,15 @@ Route102_EventScript_CalvinRematch::
+ 	end
+ 
+ Route102_EventScript_Rick::
+-	trainerbattle_single TRAINER_RICK, Route102_Text_RickIntro, Route102_Text_RickDefeated
++	trainerbattle_single TRAINER_GRUNT_AQUA_HIDEOUT_2, Route102_Text_RickIntro, Route102_Text_RickDefeated
+ 	msgbox Route102_Text_RickPostBattle, MSGBOX_AUTOCLOSE
+ 	end
+ 
+ Route102_EventScript_Tiana::
+-	trainerbattle_single TRAINER_TIANA, Route102_Text_TianaIntro, Route102_Text_TianaDefeated
++	trainerbattle_single TRAINER_GRUNT_AQUA_HIDEOUT_3, Route102_Text_TianaIntro, Route102_Text_TianaDefeated
+ 	msgbox Route102_Text_TianaPostBattle, MSGBOX_AUTOCLOSE
+ 	end
+ 
+ Route102_EventScript_Allen::
+-	trainerbattle_single TRAINER_ALLEN, Route102_Text_AllenIntro, Route102_Text_AllenDefeated
++	trainerbattle_single TRAINER_GRUNT_AQUA_HIDEOUT_4, Route102_Text_AllenIntro, Route102_Text_AllenDefeated
+ 	msgbox Route102_Text_AllenPostBattle, MSGBOX_AUTOCLOSE
+ 	end
+
+diff --git a/src/data/trainers.party b/src/data/trainers.party
+--- a/src/data/trainers.party
++++ b/src/data/trainers.party
+@@ -82,20 +82,33 @@ Double Battle: No
+ 
+ === TRAINER_SAWYER_1 ===
+-Name: SAWYER
+-Class: Hiker
+-Pic: Hiker
++Name: RED
++Class: Cooltrainer
++Pic: Red
+ Gender: Male
+-Music: Hiker
++Music: Cool
+ Double Battle: No
+ AI: Basic Trainer
+ 
+-Geodude
+-Level: 21
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Rattata
++Level: 6
++
++Pidgey
++Level: 7
++
++Pikachu @ Oran Berry
++Level: 8
+ 
+ === TRAINER_GRUNT_AQUA_HIDEOUT_1 ===
+-Name: GRUNT
+-Class: Team Aqua
+-Pic: Aqua Grunt M
++Name: JOEY
++Class: Youngster
++Pic: Youngster
+ Gender: Male
+-Music: Aqua
++Music: Male
+ Double Battle: No
+-AI: Check Bad Move
++AI: Basic Trainer
+ 
+-Poochyena
+-Level: 32
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Sentret
++Level: 6
+ 
+ === TRAINER_GRUNT_AQUA_HIDEOUT_2 ===
+-Name: GRUNT
+-Class: Team Aqua
+-Pic: Aqua Grunt M
++Name: ETHAN
++Class: Youngster
++Pic: Youngster
+ Gender: Male
+-Music: Aqua
++Music: Male
+ Double Battle: No
+-AI: Check Bad Move
++AI: Basic Trainer
+ 
+-Zubat
+-Level: 31
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+-
+-Carvanha
+-Level: 31
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Hoothoot
++Level: 7
+ 
+ === TRAINER_GRUNT_AQUA_HIDEOUT_3 ===
+-Name: GRUNT
+-Class: Team Aqua
+-Pic: Aqua Grunt M
+-Gender: Male
+-Music: Aqua
++Name: KRIS
++Class: Lass
++Pic: Lass
++Gender: Female
++Music: Female
+ Double Battle: No
+-AI: Check Bad Move
++AI: Basic Trainer
+ 
+-Zubat
+-Level: 32
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Mareep
++Level: 8
+ 
+ === TRAINER_GRUNT_AQUA_HIDEOUT_4 ===
+-Name: GRUNT
+-Class: Team Aqua
+-Pic: Aqua Grunt M
+-Gender: Male
+-Music: Aqua
++Name: SILVER
++Class: Cooltrainer
++Pic: Cooltrainer M
++Gender: Male
++Music: Cool
+ Double Battle: No
+-AI: Check Bad Move
++AI: Basic Trainer
+ 
+-Carvanha
+-Level: 32
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Wooper @ Oran Berry
++Level: 9
+@@ -155,39 +168,54 @@ IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+ 
+ === TRAINER_GABRIELLE_1 ===
+-Name: GABRIELLE
+-Class: Pkmn Breeder
+-Pic: Pokemon Breeder F
+-Gender: Female
+-Music: Female
++Name: LANCE
++Class: Champion
++Pic: Steven
++Gender: Male
++Music: Cool
++Items: Super Potion / Super Potion
+ Double Battle: No
+-AI: Check Bad Move
++AI: Basic Trainer / Check Bad Move / Try To Faint
+ 
+-Skitty
+-Level: 26
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Pidgeotto
++Level: 11
+ 
+-Poochyena
+-Level: 26
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Flaaffy
++Level: 12
+ 
+-Zigzagoon
+-Level: 26
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Quagsire
++Level: 12
+ 
+-Lotad
+-Level: 26
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Heracross
++Level: 13
+ 
+-Seedot
+-Level: 26
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Espeon @ Oran Berry
++Level: 13
+ 
+-Taillow
+-Level: 26
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
++Typhlosion @ Sitrus Berry
++Level: 14
++
++=== TRAINER_GRUNT_PETALBURG_WOODS ===
++Name: GRUNT
++Class: Team Aqua
++Pic: Aqua Grunt M
++Gender: Male
++Music: Aqua
++Double Battle: No
++AI: Check Bad Move
++
++Poochyena
++Level: 9
++IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+-
+-=== TRAINER_GRUNT_PETALBURG_WOODS ===
+-Name: GRUNT
+-Class: Team Aqua
+-Pic: Aqua Grunt M
+-Gender: Male
+-Music: Aqua
+-Double Battle: No
+-AI: Check Bad Move
+-
+-Poochyena
+-Level: 9
+-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+diff --git a/src/data/wild_encounters.json b/src/data/wild_encounters.json
+--- a/src/data/wild_encounters.json
++++ b/src/data/wild_encounters.json
+@@ -61,61 +61,61 @@
+               {
+                 "min_level": 2,
+                 "max_level": 2,
+-                "species": "SPECIES_WURMPLE"
++                "species": "SPECIES_RATTATA"
+               },
+               {
+                 "min_level": 2,
+                 "max_level": 2,
+-                "species": "SPECIES_POOCHYENA"
++                "species": "SPECIES_PIDGEY"
+               },
+               {
+                 "min_level": 2,
+                 "max_level": 2,
+-                "species": "SPECIES_WURMPLE"
++                "species": "SPECIES_RATTATA"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_WURMPLE"
++                "species": "SPECIES_PIDGEY"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_POOCHYENA"
++                "species": "SPECIES_CATERPIE"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_POOCHYENA"
++                "species": "SPECIES_WEEDLE"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_WURMPLE"
++                "species": "SPECIES_NIDORAN_F"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_POOCHYENA"
++                "species": "SPECIES_NIDORAN_M"
+               },
+               {
+                 "min_level": 2,
+                 "max_level": 2,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_SPEAROW"
+               },
+               {
+                 "min_level": 2,
+                 "max_level": 2,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_SPEAROW"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_PIKACHU"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_PIKACHU"
+               }
+@@ -131,61 +131,61 @@
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_POOCHYENA"
++                "species": "SPECIES_SENTRET"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_WURMPLE"
++                "species": "SPECIES_HOOTHOOT"
+               },
+               {
+                 "min_level": 4,
+                 "max_level": 4,
+-                "species": "SPECIES_POOCHYENA"
++                "species": "SPECIES_SENTRET"
+               },
+               {
+                 "min_level": 4,
+                 "max_level": 4,
+-                "species": "SPECIES_WURMPLE"
++                "species": "SPECIES_HOOTHOOT"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_LOTAD"
++                "species": "SPECIES_MAREEP"
+               },
+               {
+                 "min_level": 4,
+                 "max_level": 4,
+-                "species": "SPECIES_LOTAD"
++                "species": "SPECIES_MAREEP"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_LEDYBA"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_SPINARAK"
+               },
+               {
+                 "min_level": 4,
+                 "max_level": 4,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_WOOPER"
+               },
+               {
+                 "min_level": 4,
+                 "max_level": 4,
+-                "species": "SPECIES_RALTS"
++                "species": "SPECIES_BELLSPROUT"
+               },
+               {
+                 "min_level": 4,
+                 "max_level": 4,
+-                "species": "SPECIES_ZIGZAGOON"
++                "species": "SPECIES_HOPPIP"
+               },
+               {
+                 "min_level": 3,
+                 "max_level": 3,
+-                "species": "SPECIES_SEEDOT"
++                "species": "SPECIES_DROWZEE"
+               }
+@@ -239,31 +239,31 @@
+               {
+                 "min_level": 10,
+                 "max_level": 30,
+-                "species": "SPECIES_CORPHISH"
++                "species": "SPECIES_POLIWAG"
+               },
+               {
+                 "min_level": 25,
+                 "max_level": 30,
+-                "species": "SPECIES_CORPHISH"
++                "species": "SPECIES_POLIWAG"
+               },
+               {
+                 "min_level": 30,
+                 "max_level": 35,
+-                "species": "SPECIES_CORPHISH"
++                "species": "SPECIES_POLIWHIRL"
+               },
+               {
+                 "min_level": 20,
+                 "max_level": 25,
+-                "species": "SPECIES_CORPHISH"
++                "species": "SPECIES_POLIWAG"
+               },
+               {
+                 "min_level": 35,
+                 "max_level": 40,
+-                "species": "SPECIES_CORPHISH"
++                "species": "SPECIES_POLIWHIRL"
+               },
+               {
+                 "min_level": 40,
+                 "max_level": 45,
+-                "species": "SPECIES_CORPHISH"
++                "species": "SPECIES_POLIWHIRL"
+               }
