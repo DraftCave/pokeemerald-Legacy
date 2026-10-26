@@ -46,6 +46,9 @@ jobs:
           python3 tools/apply_legacy_terminal_routing.py
           git diff --check
 
+      - name: Validate three-region prototype semantics
+        run: python3 tools/validate_legacy_prototype.py
+
       - name: Build Emerald prototype
         env:
           GAME_VERSION: EMERALD
@@ -63,6 +66,7 @@ jobs:
         run: |
           echo "Pokémon Legacy prototype branch: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "This workflow validates the Legacy engine plus the temporary playable Kanto→Johto→Hoenn vertical slice." >> "$GITHUB_STEP_SUMMARY"
+          echo "Semantic validation checks regional routing, encounter pools, terminal states, boss progression, and vault invariants before compilation." >> "$GITHUB_STEP_SUMMARY"
           echo "A full expansion regression suite already passed for the Legacy core. Normal prototype iteration runs the focused legacy_system.c tests after a complete Emerald build." >> "$GITHUB_STEP_SUMMARY"
           echo "Prototype content is installed deterministically so upstream line-number drift does not silently move edits." >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
