@@ -9,8 +9,13 @@ This file is the first thing a new ChatGPT session should read before continuing
 - Active development branch: `legacy-system-prototype`
 - Active draft PR: `#1 — Prototype the three-generation Legacy System`
 - Primary architecture doc: `docs/LEGACY_SYSTEM.md`
+- Manual acceptance checklist: `docs/PROTOTYPE_PLAYTEST.md`
 - Engine integration patch: `patches/legacy_core.patch`
+- Safe-transition installer: `tools/apply_legacy_transition_guard.py`
+- Deterministic playable-content installer: `tools/apply_legacy_prototype_content.py`
 - Prototype CI workflow: `.github/workflows/legacy-prototype.yml`
+
+Current repository state wins over this handoff if newer commits exist.
 
 ## Product goal
 
@@ -21,15 +26,17 @@ Pokémon Legacy is a GBA ROM hack built on `pokeemerald-expansion` with one cont
 3. Hoenn — Gen 1–3 pool, Kanto + Johto veterans temporarily locked; all previous veterans return at the Hoenn League checkpoint.
 4. Postgame — all regional restrictions removed.
 
-The defining mechanic is the **Legacy System**: Pokémon are locked/unlocked by the individual Pokémon's campaign of origin, not by species generation.
+The defining mechanic is the **Legacy System**: eligibility follows the individual Pokémon's campaign of acquisition, not its species generation.
 
 Example: a Pikachu caught in Johto is Johto-origin even though Pikachu is a Gen 1 species.
 
-## Critical data rules
+The current task is still the three-region Gen 1–3 base game. Future ideas such as Gen 4–9, a Heart & Soul-style rules/settings menu, day/night, and map-aware battle backgrounds are parked until the base is stable.
 
-Per-Pokémon origin encoding is intentionally designed around two otherwise-unused top-level `BoxPokemon` bits so the Pokémon/save structure size does not increase.
+## Critical Pokémon-origin representation
 
-Use this encoding:
+The current prototype uses two otherwise-unused top-level `BoxPokemon` bits so the Pokémon/save structure does not grow.
+
+Encoding:
 
 - `0` = UNSET / compatibility fallback
 - `1` = KANTO
@@ -38,15 +45,11 @@ Use this encoding:
 
 Do **not** change zero to mean Kanto. Zeroed/legacy data naturally starts at zero, so zero must remain UNSET.
 
-Unknown/unset Pokémon must be handled conservatively and deterministically; they must not silently bypass regional restrictions.
+Origin belongs to the individual Pokémon and must survive party/PC movement, evolution, leveling, healing, moves, held items, and save/reload.
 
-## What is already implemented on the branch
+## Implemented campaign state
 
-The branch contains persistent campaign-state infrastructure in:
-
-- `include/constants/legacy_system.h`
-- `include/legacy_system.h`
-- `src/legacy_system.c`
+`include/constants/legacy_system.h`, `include/legacy_system.h`, and `src/legacy_system.c` implement persistent campaign state using vanilla-unused persistent variables rather than expanding save blocks.
 
 Implemented state includes:
 
@@ -58,135 +61,162 @@ Implemented state includes:
 - region transitions
 - League unlock state
 - postgame state
+- per-Pokémon origin getter/setter and eligibility API
+- safe veteran-vaulting framework
 
-The campaign state uses vanilla-unused persistent variables rather than expanding save-block structures.
+Core rule:
 
-The current Legacy code also contains the per-Pokémon origin API and safe transition/vaulting framework. Region transitions are intended to move now-ineligible party Pokémon into storage only after a successful PC copy; Pokémon must never be deleted merely because a new region begins.
+- Kanto campaign: Kanto-origin usable.
+- Johto pre-League: Johto-origin usable; Kanto-origin locked.
+- Johto League phase: Kanto + Johto usable.
+- Hoenn pre-League: Hoenn usable; Kanto + Johto locked.
+- Hoenn League/postgame: prior veterans restored as appropriate.
 
-## Engine integration currently staged
+## Implemented/staged engine integration
 
-`patches/legacy_core.patch` contains the current integration work against upstream engine files.
+`patches/legacy_core.patch` currently integrates the Legacy engine into upstream expansion files.
 
-It currently stages:
+### Acquisition/origin assignment
 
-### Pokémon acquisition
+Normal prototype acquisition paths assign the current campaign origin, including:
 
-- `src/pokemon.c`
-  - assigns the current campaign origin to wild captures before they are given to the player
-  - assigns the current campaign origin to scripted/gift Pokémon
+- wild captures
+- scripted/gift Pokémon
+- regional starters via `ScriptGiveMon`
+- eggs/daycare path used by the prototype
 
-### Eggs / breeding
-
-- `src/daycare.c`
-  - assigns the current campaign origin when a daycare egg is created
-
-### PC enforcement
-
-- `src/pokemon_storage_system.c`
-  - adds a clear Legacy-lock message
-  - blocks direct withdrawal of an ineligible boxed Pokémon
-  - blocks placement/shift actions that would move an ineligible held Pokémon into the party
-
-The desired player-facing message is currently:
-
-`This POKéMON is Legacy-locked until the League.`
+The starter/gift path was mechanically checked: regional starters flow through the scripted-give path that assigns current-region origin rather than remaining UNSET.
 
 ### Regional starters
 
-- `src/starter_choose.c`
-  - Kanto: Bulbasaur / Charmander / Squirtle
-  - Johto: Chikorita / Cyndaquil / Totodile
-  - Hoenn: Treecko / Torchic / Mudkip
-  - starter choice is derived from the current Legacy campaign region
+Starter selection is derived from current Legacy region:
 
-## CI / build state
+- Kanto: Bulbasaur / Charmander / Squirtle
+- Johto: Chikorita / Cyndaquil / Totodile
+- Hoenn: Treecko / Torchic / Mudkip
 
-A dedicated workflow exists at `.github/workflows/legacy-prototype.yml`.
+### PC enforcement
 
-Its intended sequence is:
+The PC integration blocks ineligible Pokémon from entering the active party while preserving them in storage. The intended player message is:
 
-1. checkout the branch
-2. install the ARM/GBA build toolchain
-3. `git apply --check patches/legacy_core.patch`
-4. apply the patch
-5. build Emerald with `make`
-6. run the expansion test suite with `make check`
+`This POKéMON is Legacy-locked until the League.`
 
-Important: as of this handoff, do **not** claim that the prototype is compiled, tested, or playable unless a later commit/workflow result proves it. The engine patch has been staged, but a verified green build/test result has not yet been recorded in this handoff.
+Summary viewing may remain available; locking is an eligibility restriction, not deletion or mutation.
 
-The workflow intentionally does not publish a compiled commercial ROM artifact.
+### Safe transition guard
 
-## Current verified design decisions
+`src/legacy_transition_guard.c` plus `tools/apply_legacy_transition_guard.py` add the current safety preflight for Kanto → Johto prototype transition.
 
-- Origin follows the individual Pokémon, not species generation.
-- Previous-region Pokémon are preserved, never deleted or level-reset.
-- Fresh regional progression starts with a Lv. 5 regional starter.
-- Old veterans become usable again at the next region's League checkpoint.
-- Hoenn is designed to end with a much harder League and dedicated high-level training content later.
-- Finished normal gameplay should use only Gen 1–3 species (#001–386), even though expansion internals may contain newer species/features.
-- Use a consistent Gen-III-compatible/modernized battle engine rather than recreating Gen I bugs.
-- Save integrity outranks map/UI polish.
-- Full-size Kanto/Johto/Hoenn map production must wait until the Legacy loop compiles and is proven.
+The transition checks that enough PC storage exists for the veterans that must be vaulted **before** the League/transition sequence can proceed. Insufficient capacity blocks the transition instead of risking deletion, partial movement, or an ineligible veteran being stranded in the party.
+
+This must still be manually emulator-tested; compilation alone does not certify runtime UI/save behavior.
+
+## Playable vertical-slice integration
+
+The stale hand-authored `patches/legacy_prototype_content.patch` is no longer authoritative for the build. It drifted against upstream files and was separated from the build gate.
+
+Playable content is now installed deterministically by:
+
+`tools/apply_legacy_prototype_content.py`
+
+The prototype deliberately repurposes existing Emerald maps/NPCs/trainers as mechanical scaffolding. Do not spend time recreating full regions until the loop is manually proven.
+
+Current intended play sequence:
+
+1. new save in prototype Kanto
+2. Lv. 5 Bulbasaur / Charmander / Squirtle choice
+3. Gen-1 prototype Route 101 encounters
+4. compact Kanto League boss (RED)
+5. capacity preflight
+6. mark Kanto Champion
+7. safely vault Kanto veterans
+8. begin Johto and give Lv. 5 Chikorita / Cyndaquil / Totodile
+9. Kanto veterans remain stored but PC withdrawal is blocked
+10. Gen-1/2 prototype Route 102 encounters/trainers
+11. Petalburg prototype checkpoint simulates Johto eighth badge / League access
+12. Kanto veterans unlock
+13. mixed Kanto + Johto party becomes possible
+14. stronger Johto League opponent (LANCE)
+15. record Johto Champion
+
+`docs/PROTOTYPE_PLAYTEST.md` is the authoritative manual acceptance checklist for this slice.
+
+## Exact verified build/test status at this checkpoint
+
+Do not overstate this section.
+
+### Verified
+
+- Core Legacy patch applies in GitHub Actions.
+- Transition-guard installer applies in GitHub Actions.
+- Deterministic playable-content installer applies in GitHub Actions.
+- The integrated playable vertical slice has completed the **Emerald compile successfully** in the focused `Legacy Prototype` workflow.
+- An earlier engine-only checkpoint completed the expansion suite successfully.
+
+### In progress / not yet certified
+
+- The current full playable-slice workflow run had reached `make check` / **Run expansion tests** and was still in progress at the time this handoff was updated. Do not call the current full-content suite green until a later workflow result explicitly says success.
+- Actual emulator playthrough has **not** yet certified the whole sequence.
+- Save/reload across Kanto → Johto, PC UI behavior, transition blocking, Legacy unlock, and mixed-party behavior still require manual emulator acceptance.
+- Link/trade compatibility of the two origin bits is not certified.
+
+## CI integration path
+
+From a clean checkout of `legacy-system-prototype`, the focused workflow performs the equivalent of:
+
+```sh
+git apply --recount patches/legacy_core.patch
+python3 tools/apply_legacy_transition_guard.py
+python3 tools/apply_legacy_prototype_content.py
+make -j$(nproc) -O all
+make -j$(nproc) check
+```
+
+The workflow does not publish or commit a copyrighted commercial ROM.
 
 ## Immediate next step — DO THIS FIRST
 
-Do not start drawing full regions.
+1. Inspect the newest `Legacy Prototype` GitHub Actions run on the current branch head.
+2. If expansion tests are red, fetch the failing job log and fix the concrete failure before adding features.
+3. If expansion tests are green, record the exact green SHA/run in this handoff.
+4. Then move to **manual emulator acceptance** using `docs/PROTOTYPE_PLAYTEST.md`.
+5. Fix any runtime/save/UI issue found by the acceptance playthrough.
+6. Only after the vertical slice passes manual save/reload acceptance should full Kanto map/story/content production begin.
 
-Finish and verify the engine hooks in this order:
+Do not start day/night, battle-background polish, settings/randomizer work, Gen 4–9 expansion, or full Hoenn production before this gate.
 
-1. Validate the origin getter/setter implementation against the exact `BoxPokemon` layout and all relevant copy/zero operations.
-2. Ensure every normal acquisition path relevant to the prototype receives an origin: wild capture, scripted/gift Pokémon, starters, daycare eggs/hatching.
-3. Confirm evolution, leveling, healing, moves, held items, party↔PC movement, and daycare storage do not rewrite the origin bits.
-4. Complete safe region-transition vaulting so an old-region party is deposited without loss before a fresh regional starter is given.
-5. Complete PC enforcement for every path that can place an ineligible Pokémon into the party; summary viewing may remain allowed.
-6. Run `git apply --check` for `patches/legacy_core.patch`.
-7. Run the Emerald build and test suite through the prototype workflow.
-8. Fix all compiler/test failures before adding substantial map content.
+## Manual vertical-slice pass criteria
 
-Only after the build is green should the vertical slice be scripted.
+The first playable milestone is accepted only when an emulator completes:
 
-## First playable vertical-slice target
+**Kanto starter → Kanto catches → save/reload → Kanto boss → safe vault → Johto Lv. 5 starter → save/reload → Kanto withdrawal blocked → Johto catches → League checkpoint → Kanto veterans restored → mixed party → Johto finale → final save/reload with roster intact.**
 
-Use existing Emerald maps/assets as temporary prototype geography rather than spending time drawing full regions.
+At every transition verify:
 
-The first playable acceptance sequence is:
+- no Pokémon disappears
+- no Pokémon is duplicated
+- origin remains stable
+- level/moves/item/nickname/OT/stats remain intact
+- insufficient PC capacity blocks safely
+- current region/champion/badge/access state survives save/reload
 
-1. start in prototype Kanto
-2. choose Bulbasaur / Charmander / Squirtle at Lv. 5
-3. obtain Kanto-origin Pokémon
-4. defeat a compact Kanto League / Champion sequence
-5. mark Kanto Champion
-6. transition to Johto
-7. safely vault Kanto party members and lock them
-8. choose Chikorita / Cyndaquil / Totodile at Lv. 5
-9. obtain Johto-origin Pokémon
-10. confirm Kanto Pokémon still exist but cannot enter the active party
-11. reach a simulated Johto final-badge / League checkpoint
-12. restore Kanto Legacy access
-13. build a mixed Kanto + Johto party
-14. fight a stronger Johto League encounter
-15. save/reload at the major transition points and confirm persistence
+## Future wishlist — parked, not current work
 
-## Definition of first milestone success
+Once the three-region base is stable, user wants to explore:
 
-Do not call the vertical slice done merely because source code exists.
+- Heart & Soul-style Recommended/Custom game-rules menu
+- settings that distinguish change-anytime vs save-locked rules
+- day/night cycle with RTC/fake-RTC support
+- battle backgrounds reflecting the actual route/city/area, later with day/night variants
+- eventual Gen 4–9 species expansion and potentially broader campaign content
 
-It is successful only after the branch has a verified build where:
-
-- origin assignment works
-- save persistence works
-- Kanto→Johto transition works
-- veterans are preserved but locked
-- Johto begins with a fresh Lv. 5 starter
-- the League checkpoint restores veterans
-- Kanto + Johto mixed-party play works afterward
-- save/reload preserves the state
+These are not current blockers and must not derail base-game completion.
 
 ## Resume instruction for a future ChatGPT session
 
-Use this instruction:
+Use:
 
-> Continue Pokémon Legacy from `POKEMON_LEGACY_HANDOFF.md` in `DraftCave/pokeemerald-Legacy`. Inspect the current `legacy-system-prototype` branch and draft PR #1 first. Current repository state wins over this handoff if newer commits exist. Do not restart the architecture. Continue from the immediate next step, preserve `master`, and do not claim compilation/playability until verified by the actual build/tests.
+> Continue Pokémon Legacy from `POKEMON_LEGACY_HANDOFF.md` in `DraftCave/pokeemerald-Legacy`. Inspect the current `legacy-system-prototype` branch, draft PR #1, and newest `Legacy Prototype` workflow run first. Current repository state wins over the handoff. Preserve `master`, do not restart the architecture, and do not claim runtime playability until the emulator acceptance checklist has passed.
 
 ## Updating this handoff
 
@@ -198,4 +228,4 @@ After every meaningful implementation milestone, update this file with:
 - known failures/blockers
 - next concrete step
 
-Never let this file claim more than the repository and tests prove.
+Never let this file claim more than the repository, CI, and manual tests prove.
