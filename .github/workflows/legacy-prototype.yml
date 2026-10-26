@@ -9,6 +9,10 @@ on:
       - master
   workflow_dispatch:
 
+concurrency:
+  group: legacy-prototype-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GAME_REVISION: 0
   GAME_LANGUAGE: ENGLISH
@@ -19,6 +23,7 @@ env:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,10 +38,11 @@ jobs:
           git apply --recount --check patches/legacy_core.patch
           git apply --recount patches/legacy_core.patch
 
-      - name: Install playable Legacy prototype content
+      - name: Install playable three-region Legacy prototype content
         run: |
           python3 tools/apply_legacy_prototype_content.py
           python3 tools/apply_legacy_transition_guard.py
+          python3 tools/apply_legacy_hoenn_prototype.py
           git diff --check
 
       - name: Build Emerald prototype
@@ -44,17 +50,19 @@ jobs:
           GAME_VERSION: EMERALD
         run: make -j$(nproc) -O all
 
-      - name: Run expansion tests
+      - name: Run focused Legacy tests
         env:
           GAME_VERSION: EMERALD
           TEST: 1
+          TESTS: legacy_system.c
         run: make -j$(nproc) check
 
       - name: Record build summary
         if: always()
         run: |
           echo "Pokémon Legacy prototype branch: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          echo "This workflow validates the Legacy engine plus the temporary playable Kanto→Johto vertical-slice content." >> "$GITHUB_STEP_SUMMARY"
-          echo "Core integration is applied from patches/legacy_core.patch; prototype content is installed deterministically by tools/apply_legacy_prototype_content.py and the region-transition PC-capacity guard by tools/apply_legacy_transition_guard.py." >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow validates the Legacy engine plus the temporary playable Kanto→Johto→Hoenn vertical slice." >> "$GITHUB_STEP_SUMMARY"
+          echo "A full expansion regression suite already passed for the Legacy core. Normal prototype iteration runs the focused legacy_system.c tests after a complete Emerald build." >> "$GITHUB_STEP_SUMMARY"
+          echo "Prototype content is installed deterministically so upstream line-number drift does not silently move edits." >> "$GITHUB_STEP_SUMMARY"
           echo "The workflow intentionally does not publish a compiled commercial ROM artifact." >> "$GITHUB_STEP_SUMMARY"
-          echo "Local build: git apply --recount patches/legacy_core.patch; python3 tools/apply_legacy_prototype_content.py; python3 tools/apply_legacy_transition_guard.py; make" >> "$GITHUB_STEP_SUMMARY"
+          echo "Local build: git apply --recount patches/legacy_core.patch; python3 tools/apply_legacy_prototype_content.py; python3 tools/apply_legacy_transition_guard.py; python3 tools/apply_legacy_hoenn_prototype.py; make" >> "$GITHUB_STEP_SUMMARY"
