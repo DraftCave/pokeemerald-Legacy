@@ -15,21 +15,19 @@ diff --git a/data/specials.inc b/data/specials.inc
 diff --git a/data/maps/OldaleTown/scripts.inc b/data/maps/OldaleTown/scripts.inc
 --- a/data/maps/OldaleTown/scripts.inc
 +++ b/data/maps/OldaleTown/scripts.inc
-@@ -30,8 +30,55 @@ OldaleTown_EventScript_TownSign::
+@@ -30,8 +30,51 @@ OldaleTown_EventScript_TownSign::
  	end
  
  OldaleTown_EventScript_Girl::
 -	msgbox OldaleTown_Text_SavingMyProgress, MSGBOX_NPC
-+	lock
-+	faceplayer
 +	goto_if_eq VAR_UNUSED_0x40FA, 3, OldaleTown_EventScript_LegacyComplete
 +	goto_if_eq VAR_UNUSED_0x40F8, 1, OldaleTown_EventScript_JohtoActive
 +	trainerbattle_single TRAINER_SAWYER_1, OldaleTown_Text_LegacyKantoChallenge, OldaleTown_Text_LegacyKantoDefeated, OldaleTown_EventScript_LegacyBeginJohto
-+	msgbox OldaleTown_Text_LegacyKantoReady, MSGBOX_DEFAULT
-+	release
-+	end
++	msgbox OldaleTown_Text_LegacyKantoReady, MSGBOX_NPC
+ 	end
 +
 +OldaleTown_EventScript_LegacyBeginJohto::
++	lock
 +	special LegacyPrototype_BeginJohto
 +	msgbox OldaleTown_Text_LegacyKantoChampion, MSGBOX_DEFAULT
 +	special ChooseLegacyStarter
@@ -39,19 +37,16 @@ diff --git a/data/maps/OldaleTown/scripts.inc b/data/maps/OldaleTown/scripts.inc
 +
 +OldaleTown_EventScript_JohtoActive::
 +	goto_if_eq VAR_UNUSED_0x40F9, 1, OldaleTown_EventScript_JohtoLeagueOpen
-+	msgbox OldaleTown_Text_LegacyJohtoJourney, MSGBOX_DEFAULT
-+	release
++	msgbox OldaleTown_Text_LegacyJohtoJourney, MSGBOX_NPC
 +	end
 +
 +OldaleTown_EventScript_JohtoLeagueOpen::
-+	msgbox OldaleTown_Text_LegacyVeteransReturned, MSGBOX_DEFAULT
-+	release
++	msgbox OldaleTown_Text_LegacyVeteransReturned, MSGBOX_NPC
 +	end
 +
 +OldaleTown_EventScript_LegacyComplete::
-+	msgbox OldaleTown_Text_LegacyComplete, MSGBOX_DEFAULT
-+	release
- 	end
++	msgbox OldaleTown_Text_LegacyComplete, MSGBOX_NPC
++	end
 +
 +OldaleTown_Text_LegacyKantoChallenge:
 +	.string "This is the KANTO LEAGUE test.\p"
@@ -91,44 +86,44 @@ diff --git a/data/maps/OldaleTown/scripts.inc b/data/maps/OldaleTown/scripts.inc
 diff --git a/data/maps/PetalburgCity/scripts.inc b/data/maps/PetalburgCity/scripts.inc
 --- a/data/maps/PetalburgCity/scripts.inc
 +++ b/data/maps/PetalburgCity/scripts.inc
-@@ -79,13 +79,55 @@ PetalburgCity_EventScript_WalkToWallyHouse::
+@@ -79,13 +79,51 @@ PetalburgCity_EventScript_WalkToWallyHouse::
  	end
  
  PetalburgCity_EventScript_Boy::
- 	lock
- 	faceplayer
+-	lock
+-	faceplayer
 -	msgbox PetalburgCity_Text_WaterReflection, MSGBOX_DEFAULT
 -	closemessage
 -	applymovement LOCALID_PETALBURG_BOY, Common_Movement_FaceOriginalDirection
 -	waitmovement 0
+-	release
 +	goto_if_eq VAR_UNUSED_0x40FA, 3, PetalburgCity_EventScript_LegacyComplete
 +	goto_if_eq VAR_UNUSED_0x40F8, 1, PetalburgCity_EventScript_LegacyJohto
-+	msgbox PetalburgCity_Text_LegacyFinishKanto, MSGBOX_DEFAULT
- 	release
++	msgbox PetalburgCity_Text_LegacyFinishKanto, MSGBOX_NPC
  	end
 +
 +PetalburgCity_EventScript_LegacyJohto::
 +	goto_if_eq VAR_UNUSED_0x40F9, 0, PetalburgCity_EventScript_UnlockLegacy
 +	trainerbattle_single TRAINER_GABRIELLE_1, PetalburgCity_Text_LegacyJohtoChallenge, PetalburgCity_Text_LegacyJohtoDefeated, PetalburgCity_EventScript_FinishJohto
-+	msgbox PetalburgCity_Text_LegacyLeagueReady, MSGBOX_DEFAULT
-+	release
++	msgbox PetalburgCity_Text_LegacyLeagueReady, MSGBOX_NPC
 +	end
 +
 +PetalburgCity_EventScript_UnlockLegacy::
++	lock
 +	special LegacyPrototype_UnlockJohtoLeague
 +	msgbox PetalburgCity_Text_LegacyUnlocked, MSGBOX_DEFAULT
 +	release
 +	end
 +
 +PetalburgCity_EventScript_FinishJohto::
++	lock
 +	special LegacyPrototype_FinishJohto
 +	msgbox PetalburgCity_Text_LegacyJohtoChampion, MSGBOX_DEFAULT
 +	release
 +	end
 +
 +PetalburgCity_EventScript_LegacyComplete::
-+	msgbox PetalburgCity_Text_LegacyComplete, MSGBOX_DEFAULT
-+	release
++	msgbox PetalburgCity_Text_LegacyComplete, MSGBOX_NPC
 +	end
 +
 +PetalburgCity_Text_LegacyFinishKanto:
@@ -202,7 +197,7 @@ diff --git a/data/maps/Route102/scripts.inc b/data/maps/Route102/scripts.inc
 diff --git a/src/data/trainers.party b/src/data/trainers.party
 --- a/src/data/trainers.party
 +++ b/src/data/trainers.party
-@@ -82,20 +82,33 @@ Double Battle: No
+@@ -82,66 +82,65 @@ Double Battle: No
  
  === TRAINER_SAWYER_1 ===
 -Name: SAWYER
@@ -210,7 +205,7 @@ diff --git a/src/data/trainers.party b/src/data/trainers.party
 -Pic: Hiker
 +Name: RED
 +Class: Cooltrainer
-+Pic: Red
++Pic: Cooltrainer M
  Gender: Male
 -Music: Hiker
 +Music: Cool
@@ -298,12 +293,11 @@ diff --git a/src/data/trainers.party b/src/data/trainers.party
 -Name: GRUNT
 -Class: Team Aqua
 -Pic: Aqua Grunt M
--Gender: Male
--Music: Aqua
 +Name: SILVER
 +Class: Cooltrainer
 +Pic: Cooltrainer M
-+Gender: Male
+ Gender: Male
+-Music: Aqua
 +Music: Cool
  Double Battle: No
 -AI: Check Bad Move
@@ -314,7 +308,8 @@ diff --git a/src/data/trainers.party b/src/data/trainers.party
 -IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 +Wooper @ Oran Berry
 +Level: 9
-@@ -155,39 +168,54 @@ IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+@@ -185,39 +184,39 @@ Zubat
+ IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
  
  === TRAINER_GABRIELLE_1 ===
 -Name: GABRIELLE
@@ -327,10 +322,9 @@ diff --git a/src/data/trainers.party b/src/data/trainers.party
 +Pic: Steven
 +Gender: Male
 +Music: Cool
-+Items: Super Potion / Super Potion
  Double Battle: No
 -AI: Check Bad Move
-+AI: Basic Trainer / Check Bad Move / Try To Faint
++AI: Basic Trainer
  
 -Skitty
 -Level: 26
@@ -367,37 +361,14 @@ diff --git a/src/data/trainers.party b/src/data/trainers.party
 -IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 +Typhlosion @ Sitrus Berry
 +Level: 14
-+
-+=== TRAINER_GRUNT_PETALBURG_WOODS ===
-+Name: GRUNT
-+Class: Team Aqua
-+Pic: Aqua Grunt M
-+Gender: Male
-+Music: Aqua
-+Double Battle: No
-+AI: Check Bad Move
-+
-+Poochyena
-+Level: 9
-+IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
--
--=== TRAINER_GRUNT_PETALBURG_WOODS ===
--Name: GRUNT
--Class: Team Aqua
--Pic: Aqua Grunt M
--Gender: Male
--Music: Aqua
--Double Battle: No
--AI: Check Bad Move
--
--Poochyena
--Level: 9
--IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+ 
+ === TRAINER_GRUNT_PETALBURG_WOODS ===
+ Name: GRUNT
 
 diff --git a/src/data/wild_encounters.json b/src/data/wild_encounters.json
 --- a/src/data/wild_encounters.json
 +++ b/src/data/wild_encounters.json
-@@ -61,61 +61,61 @@
+@@ -85,67 +85,67 @@
                {
                  "min_level": 2,
                  "max_level": 2,
@@ -470,7 +441,8 @@ diff --git a/src/data/wild_encounters.json b/src/data/wild_encounters.json
 -                "species": "SPECIES_ZIGZAGOON"
 +                "species": "SPECIES_PIKACHU"
                }
-@@ -131,61 +131,61 @@
+             ]
+@@ -162,61 +162,61 @@
                {
                  "min_level": 3,
                  "max_level": 3,
@@ -543,7 +515,8 @@ diff --git a/src/data/wild_encounters.json b/src/data/wild_encounters.json
 -                "species": "SPECIES_SEEDOT"
 +                "species": "SPECIES_DROWZEE"
                }
-@@ -239,31 +239,31 @@
+             ]
+@@ -272,31 +272,31 @@
                {
                  "min_level": 10,
                  "max_level": 30,
@@ -580,3 +553,4 @@ diff --git a/src/data/wild_encounters.json b/src/data/wild_encounters.json
 -                "species": "SPECIES_CORPHISH"
 +                "species": "SPECIES_POLIWHIRL"
                }
+             ]
