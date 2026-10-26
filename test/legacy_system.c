@@ -69,6 +69,29 @@ TEST("Region transition fails closed before state mutation when veterans cannot 
     gPokemonStoragePtr = savedStorage;
 }
 
+TEST("Johto to Hoenn transition fails closed before state mutation when veterans cannot be vaulted")
+{
+    struct PokemonStorage *savedStorage = gPokemonStoragePtr;
+
+    ResetLegacyTestState();
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_KANTO);
+    LegacySystem_BeginRegion(LEGACY_REGION_JOHTO);
+    CreateTestMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_MAREEP);
+    LegacySystem_SetMonOrigin(&gParties[B_TRAINER_PLAYER][0], LEGACY_ORIGIN_JOHTO);
+    CalculatePlayerPartyCount();
+
+    gPokemonStoragePtr = NULL;
+
+    EXPECT_EQ(LegacyPrototype_BeginHoenn(), 0);
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_JOHTO);
+    EXPECT_EQ(LegacySystem_GetChampionMask(), LEGACY_REGION_MASK_KANTO);
+    EXPECT_EQ(LegacySystem_GetBadgeCount(LEGACY_REGION_JOHTO), 0);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_MAREEP);
+    EXPECT_EQ(LegacySystem_GetMonOrigin(&gParties[B_TRAINER_PLAYER][0]), LEGACY_ORIGIN_JOHTO);
+
+    gPokemonStoragePtr = savedStorage;
+}
+
 TEST("Entering Johto locks Kanto Pokemon until the League checkpoint")
 {
     struct Pokemon kantoMon;
