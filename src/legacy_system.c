@@ -12,7 +12,7 @@
 
 static void CB2_GiveLegacyStarter(void);
 static void LegacySystem_CompactPlayerParty(void);
-static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(const struct BoxPokemon *boxMon);
+static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(struct BoxPokemon *boxMon);
 
 static u16 LegacySystem_GetRegionBit(enum LegacyCampaignRegion region)
 {
@@ -94,18 +94,12 @@ void LegacySystem_BeginRegion(enum LegacyCampaignRegion region)
         return;
 
     VarSet(VAR_LEGACY_CURRENT_REGION, region);
-
-    // A new regional journey begins with legacy rosters locked. They are
-    // restored only when the player reaches that region's League checkpoint.
     VarSet(VAR_LEGACY_ACCESS_MASK, 0);
 
     badgeVar = LegacySystem_GetBadgeVar(region);
     if (badgeVar != 0)
         VarSet(badgeVar, 0);
 
-    // Preserve ownership and identity while removing newly ineligible veterans
-    // from the active party. A mon is erased from the party only after it was
-    // successfully copied to PC storage.
     LegacySystem_StoreLockedPartyMons();
 }
 
@@ -121,7 +115,6 @@ void LegacySystem_SetBadgeCount(enum LegacyCampaignRegion region, u16 badgeCount
     u16 badgeVar;
 
     LegacySystem_EnsureInitialized();
-
     if (badgeCount > 8)
         badgeCount = 8;
 
@@ -135,7 +128,6 @@ u16 LegacySystem_GetBadgeCount(enum LegacyCampaignRegion region)
     u16 badgeVar;
 
     LegacySystem_EnsureInitialized();
-
     badgeVar = LegacySystem_GetBadgeVar(region);
     if (badgeVar == 0)
         return 0;
@@ -148,7 +140,6 @@ void LegacySystem_MarkRegionChampion(enum LegacyCampaignRegion region)
     u16 regionBit;
 
     LegacySystem_EnsureInitialized();
-
     regionBit = LegacySystem_GetRegionBit(region);
     if (regionBit != 0)
         VarSet(VAR_LEGACY_CHAMPION_MASK, VarGet(VAR_LEGACY_CHAMPION_MASK) | regionBit);
@@ -159,7 +150,6 @@ bool8 LegacySystem_IsRegionChampion(enum LegacyCampaignRegion region)
     u16 regionBit;
 
     LegacySystem_EnsureInitialized();
-
     regionBit = LegacySystem_GetRegionBit(region);
     if (regionBit == 0)
         return FALSE;
@@ -192,7 +182,6 @@ void LegacySystem_UnlockChampionsForCurrentLeague(void)
         break;
     }
 
-    // Only completed previous regions become accessible again.
     VarSet(VAR_LEGACY_ACCESS_MASK, VarGet(VAR_LEGACY_CHAMPION_MASK) & eligibleMask);
 }
 
@@ -231,9 +220,6 @@ u16 LegacySystem_GetChampionMask(void)
 
 enum LegacyPokemonOrigin LegacySystem_GetBoxMonOrigin(const struct BoxPokemon *boxMon)
 {
-    // These are two top-level BoxPokemon bits that are unused by the current
-    // expansion. Keeping the origin outside the encrypted substruct preserves
-    // checksum behavior and sizeof(struct BoxPokemon).
     return (enum LegacyPokemonOrigin)((boxMon->unused_13 ? 1 : 0)
         | (boxMon->unused_1E ? 2 : 0));
 }
@@ -275,7 +261,6 @@ bool8 LegacySystem_IsBoxMonEligible(const struct BoxPokemon *boxMon)
 
     if (GetBoxMonData((struct BoxPokemon *)boxMon, MON_DATA_SPECIES) == SPECIES_NONE)
         return TRUE;
-
     if (LegacySystem_GetCurrentRegion() == LEGACY_REGION_POSTGAME)
         return TRUE;
 
@@ -290,8 +275,6 @@ bool8 LegacySystem_IsBoxMonEligible(const struct BoxPokemon *boxMon)
         return LegacySystem_IsRegionAccessible(LEGACY_REGION_HOENN);
     case LEGACY_ORIGIN_UNSET:
     default:
-        // Fail closed. Missing tagging must never silently bypass a regional
-        // lock; this also makes acquisition-path bugs obvious during testing.
         return FALSE;
     }
 }
@@ -327,7 +310,7 @@ static void LegacySystem_CompactPlayerParty(void)
     CalculatePlayerPartyCount();
 }
 
-static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(const struct BoxPokemon *boxMon)
+static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(struct BoxPokemon *boxMon)
 {
     u8 startBox;
     u8 box;
@@ -344,10 +327,8 @@ static bool8 LegacySystem_CopyBoxMonToStoragePreservingState(const struct BoxPok
 
         if (boxPos >= 0)
         {
-            // Do not call CopyMonToPC here. That normal gameplay helper calls
-            // MonRestorePP before storing the Pokémon, which would silently
-            // modify a veteran during a Legacy transition. Copy the persistent
-            // BoxPokemon payload exactly as-is instead.
+            // Normal CopyMonToPC() restores PP before storing. A Legacy vault
+            // must preserve the persistent BoxPokemon payload exactly instead.
             CopyMon(GetBoxedMonPtr(box, boxPos), boxMon, sizeof(*boxMon));
             return TRUE;
         }
@@ -373,18 +354,12 @@ void LegacySystem_StoreLockedPartyMons(void)
         if (LegacySystem_IsMonEligible(mon))
             continue;
 
-        // Never destroy or mutate a veteran unless an exact persistent copy
-        // was successfully written to PC storage first.
         if (LegacySystem_CopyBoxMonToStoragePreservingState(&mon->box))
             ZeroMonData(mon);
     }
 
     LegacySystem_CompactPlayerParty();
 }
-
-// -----------------------------------------------------------------------------
-// Script-facing prototype helpers
-// -----------------------------------------------------------------------------
 
 void ChooseLegacyStarter(void)
 {
@@ -423,7 +398,6 @@ u16 LegacyPrototype_FinishJohto(void)
 
 u16 LegacyPrototype_BeginHoenn(void)
 {
-    // Be idempotent if the player had to return after freeing PC space.
     LegacySystem_MarkRegionChampion(LEGACY_REGION_JOHTO);
     LegacySystem_SetBadgeCount(LEGACY_REGION_JOHTO, 8);
     LegacySystem_BeginRegion(LEGACY_REGION_HOENN);
