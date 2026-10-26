@@ -10,8 +10,8 @@ From a clean checkout of `legacy-system-prototype`:
 
 ```sh
 git apply --recount patches/legacy_core.patch
-python3 tools/apply_legacy_transition_guard.py
 python3 tools/apply_legacy_prototype_content.py
+python3 tools/apply_legacy_transition_guard.py
 make -j$(nproc) -O all
 make -j$(nproc) check
 ```
