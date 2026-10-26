@@ -384,3 +384,27 @@ u16 LegacyPrototype_FinishJohto(void)
     LegacySystem_MarkRegionChampion(LEGACY_REGION_JOHTO);
     return LegacySystem_GetChampionMask();
 }
+
+u16 LegacyPrototype_BeginHoenn(void)
+{
+    // Be idempotent if the player had to return after freeing PC space.
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_JOHTO);
+    LegacySystem_SetBadgeCount(LEGACY_REGION_JOHTO, 8);
+    LegacySystem_BeginRegion(LEGACY_REGION_HOENN);
+    return LegacySystem_GetChampionMask();
+}
+
+u16 LegacyPrototype_UnlockHoennLeague(void)
+{
+    LegacySystem_SetBadgeCount(LEGACY_REGION_HOENN, 8);
+    LegacySystem_UnlockChampionsForCurrentLeague();
+    return LegacySystem_GetLegacyAccessMask();
+}
+
+u16 LegacyPrototype_FinishHoenn(void)
+{
+    LegacySystem_MarkRegionChampion(LEGACY_REGION_HOENN);
+    LegacySystem_SetBadgeCount(LEGACY_REGION_HOENN, 8);
+    LegacySystem_EnterPostgame();
+    return LegacySystem_GetChampionMask();
+}
