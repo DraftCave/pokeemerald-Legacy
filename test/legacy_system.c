@@ -2,6 +2,7 @@
 #include "event_data.h"
 #include "legacy_system.h"
 #include "pokemon.h"
+#include "pokemon_storage_system.h"
 #include "test/test.h"
 #include "constants/legacy_system.h"
 
@@ -45,6 +46,27 @@ TEST("Unknown-origin Pokemon fail closed during a regional campaign")
     CreateTestMon(&mon, SPECIES_PIKACHU);
 
     EXPECT(!LegacySystem_IsMonEligible(&mon));
+}
+
+TEST("Region transition fails closed before state mutation when veterans cannot be vaulted")
+{
+    struct PokemonStorage *savedStorage = gPokemonStoragePtr;
+
+    ResetLegacyTestState();
+    CreateTestMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_PIKACHU);
+    LegacySystem_SetMonOrigin(&gParties[B_TRAINER_PLAYER][0], LEGACY_ORIGIN_KANTO);
+    CalculatePlayerPartyCount();
+
+    gPokemonStoragePtr = NULL;
+
+    EXPECT_EQ(LegacyPrototype_BeginJohto(), 0);
+    EXPECT_EQ(LegacySystem_GetCurrentRegion(), LEGACY_REGION_KANTO);
+    EXPECT_EQ(LegacySystem_GetChampionMask(), 0);
+    EXPECT_EQ(LegacySystem_GetBadgeCount(LEGACY_REGION_KANTO), 0);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_PIKACHU);
+    EXPECT_EQ(LegacySystem_GetMonOrigin(&gParties[B_TRAINER_PLAYER][0]), LEGACY_ORIGIN_KANTO);
+
+    gPokemonStoragePtr = savedStorage;
 }
 
 TEST("Entering Johto locks Kanto Pokemon until the League checkpoint")
