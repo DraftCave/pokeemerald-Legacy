@@ -1,0 +1,219 @@
+diff --git a/src/new_game.c b/src/new_game.c
+--- a/src/new_game.c
++++ b/src/new_game.c
+@@ -11,6 +11,7 @@
+ #include "script.h"
+ #include "lottery_corner.h"
+ #include "play_time.h"
++#include "legacy_system.h"
+ #include "mauville_old_man.h"
+ #include "match_call.h"
+ #include "lilycove_lady.h"
+@@ -169,6 +170,7 @@ void NewGameInitData(void)
+     InitPlayerTrainerId();
+     PlayTimeCounter_Reset();
+     ClearPokedexFlags();
+     InitEventData();
++    LegacySystem_Reset();
+     ClearTVShowData();
+     ResetGabbyAndTy();
+     ClearSecretBases();
+diff --git a/src/pokemon.c b/src/pokemon.c
+--- a/src/pokemon.c
++++ b/src/pokemon.c
+@@ -22,6 +22,7 @@
+ #include "graphics.h"
+ #include "item.h"
++#include "legacy_system.h"
+ #include "link.h"
+ #include "m4a.h"
+ #include "main.h"
+@@ -2860,6 +2861,8 @@ u8 GiveCapturedMonToPlayer(struct Pokemon *mon)
+ {
+     s32 i;
+ 
++    LegacySystem_AssignCurrentRegionOrigin(mon);
++
+     SetMonData(mon, MON_DATA_OT_NAME, gSaveBlock2Ptr->playerName);
+     SetMonData(mon, MON_DATA_OT_GENDER, &gSaveBlock2Ptr->playerGender);
+     SetMonData(mon, MON_DATA_OT_ID, gSaveBlock2Ptr->playerTrainerId);
+@@ -8850,6 +8853,9 @@ u32 GiveScriptedMonToPlayer(struct Pokemon *mon, u8 slot)
+ {
+     u32 sentToPc;
+     u32 i = 0;
++
++    LegacySystem_AssignCurrentRegionOrigin(mon);
++
+     if (slot < PARTY_SIZE)
+     {
+         CopyMon(&gParties[B_TRAINER_PLAYER][slot], mon, sizeof(struct Pokemon));
+diff --git a/src/daycare.c b/src/daycare.c
+--- a/src/daycare.c
++++ b/src/daycare.c
+@@ -15,6 +15,7 @@
+ #include "party_menu.h"
+ #include "list_menu.h"
+ #include "overworld.h"
++#include "legacy_system.h"
+ #include "ow_abilities.h"
+ #include "item.h"
+ #include "regions.h"
+@@ -1510,6 +1511,7 @@ static void _GiveEggFromDaycare(struct DayCare *daycare)
+     if (P_INCENSE_BREEDING < GEN_9)
+         AlterEggSpeciesWithIncenseItem(&species, daycare);
+     SetInitialEggData(&egg, species, daycare);
++    LegacySystem_AssignCurrentRegionOrigin(&egg);
+     InheritIVs(&egg, daycare);
+     InheritPokeball(&egg, daycare);
+     BuildEggMoveset(&egg, &daycare->mons[parentSlots[1]].mon, &daycare->mons[parentSlots[0]].mon);
+diff --git a/src/pokemon_storage_system.c b/src/pokemon_storage_system.c
+--- a/src/pokemon_storage_system.c
++++ b/src/pokemon_storage_system.c
+@@ -16,6 +16,7 @@
+ #include "international_string_util.h"
+ #include "item.h"
+ #include "item_icon.h"
++#include "legacy_system.h"
+ #include "item_menu.h"
+ #include "mail.h"
+ #include "main.h"
+@@ -85,6 +86,7 @@ enum {
+     MSG_ITEM_IS_HELD,
+     MSG_CHANGED_TO_ITEM,
+     MSG_CANT_STORE_MAIL,
++    MSG_LEGACY_LOCKED,
+ };
+@@ -760,6 +762,7 @@ static const struct StorageMessage sMessages[] =
+     [MSG_ITEM_IS_HELD]         = {COMPOUND_STRING("{DYNAMIC 0} is now held."),   MSG_VAR_ITEM_NAME},
+     [MSG_CHANGED_TO_ITEM]      = {COMPOUND_STRING("Changed to {DYNAMIC 0}."),    MSG_VAR_ITEM_NAME},
+     [MSG_CANT_STORE_MAIL]      = {COMPOUND_STRING("MAIL can't be stored!"),      MSG_VAR_NONE},
++    [MSG_LEGACY_LOCKED]        = {COMPOUND_STRING("This POKéMON is Legacy-locked until the League."), MSG_VAR_NONE},
+ };
+@@ -2754,8 +2757,17 @@ static void Task_PlaceMon(u8 taskId)
+     switch (sStorage->state)
+     {
+     case 0:
+-        InitMonPlaceChange(CHANGE_PLACE);
+-        sStorage->state++;
++        if (sInPartyMenu && !LegacySystem_IsMonEligible(&sStorage->movingMon))
++        {
++            PlaySE(SE_FAILURE);
++            PrintMessage(MSG_LEGACY_LOCKED);
++            sStorage->state = 2;
++        }
++        else
++        {
++            InitMonPlaceChange(CHANGE_PLACE);
++            sStorage->state++;
++        }
+         break;
+     case 1:
+         if (!DoMonPlaceChange())
+@@ -2766,6 +2778,14 @@ static void Task_PlaceMon(u8 taskId)
+                 SetPokeStorageTask(Task_PokeStorageMain);
+         }
+         break;
++    case 2:
++        if (JOY_NEW(A_BUTTON | B_BUTTON | DPAD_ANY))
++        {
++            ClearBottomWindow();
++            SetPokeStorageTask(Task_PokeStorageMain);
++        }
++        break;
+     }
+ }
+ 
+@@ -2775,8 +2795,17 @@ static void Task_ShiftMon(u8 taskId)
+     switch (sStorage->state)
+     {
+     case 0:
+-        InitMonPlaceChange(CHANGE_SHIFT);
+-        sStorage->state++;
++        if (sInPartyMenu && !LegacySystem_IsMonEligible(&sStorage->movingMon))
++        {
++            PlaySE(SE_FAILURE);
++            PrintMessage(MSG_LEGACY_LOCKED);
++            sStorage->state = 2;
++        }
++        else
++        {
++            InitMonPlaceChange(CHANGE_SHIFT);
++            sStorage->state++;
++        }
+         break;
+     case 1:
+         if (!DoMonPlaceChange())
+@@ -2786,6 +2815,14 @@ static void Task_ShiftMon(u8 taskId)
+             SetPokeStorageTask(Task_PokeStorageMain);
+         }
+         break;
++    case 2:
++        if (JOY_NEW(A_BUTTON | B_BUTTON | DPAD_ANY))
++        {
++            ClearBottomWindow();
++            SetPokeStorageTask(Task_PokeStorageMain);
++        }
++        break;
+     }
+ }
+ 
+@@ -2795,7 +2832,12 @@ static void Task_WithdrawMon(u8 taskId)
+     switch (sStorage->state)
+     {
+     case 0:
+-        if (CalculatePlayerPartyCount() == PARTY_SIZE)
++        if (!LegacySystem_IsBoxMonEligible(GetCursorBoxMon()))
++        {
++            PlaySE(SE_FAILURE);
++            PrintMessage(MSG_LEGACY_LOCKED);
++            sStorage->state = 1;
++        }
++        else if (CalculatePlayerPartyCount() == PARTY_SIZE)
+         {
+             PrintMessage(MSG_PARTY_FULL);
+             sStorage->state = 1;
+diff --git a/src/starter_choose.c b/src/starter_choose.c
+--- a/src/starter_choose.c
++++ b/src/starter_choose.c
+@@ -7,6 +7,7 @@
+ #include "international_string_util.h"
+ #include "main.h"
+ #include "menu.h"
++#include "legacy_system.h"
+ #include "palette.h"
+ #include "pokedex.h"
+ #include "pokemon.h"
+@@ -102,18 +103,24 @@ static const u8 sStarterLabelCoords[STARTER_MON_COUNT][2] =
+     {8, 4},
+ };
+ 
+-#define GRASS_STARTER (IS_FRLG ? SPECIES_BULBASAUR  : SPECIES_TREECKO)
+-#define FIRE_STARTER  (IS_FRLG ? SPECIES_CHARMANDER : SPECIES_TORCHIC)
+-#define WATER_STARTER (IS_FRLG ? SPECIES_SQUIRTLE   : SPECIES_MUDKIP )
+-
+-static const u16 sStarterMon[STARTER_MON_COUNT] =
++static const enum Species sLegacyStarters[3][STARTER_MON_COUNT] =
+ {
+-    GRASS_STARTER,
+-    FIRE_STARTER,
+-    WATER_STARTER,
++    [LEGACY_REGION_KANTO] = {SPECIES_BULBASAUR, SPECIES_CHARMANDER, SPECIES_SQUIRTLE},
++    [LEGACY_REGION_JOHTO] = {SPECIES_CHIKORITA, SPECIES_CYNDAQUIL, SPECIES_TOTODILE},
++    [LEGACY_REGION_HOENN] = {SPECIES_TREECKO, SPECIES_TORCHIC, SPECIES_MUDKIP},
+ };
+@@ -309,9 +316,15 @@ static const struct SpriteTemplate sSpriteTemplate_StarterCircle =
+ // .text
+ u16 GetStarterPokemon(u16 chosenStarterId)
+ {
+-    if (chosenStarterId > STARTER_MON_COUNT)
++    enum LegacyCampaignRegion region = LegacySystem_GetCurrentRegion();
++
++    if (chosenStarterId >= STARTER_MON_COUNT)
+         chosenStarterId = 0;
+-    return sStarterMon[chosenStarterId];
++
++    if (region > LEGACY_REGION_HOENN)
++        region = LEGACY_REGION_HOENN;
++
++    return sLegacyStarters[region][chosenStarterId];
+ }
